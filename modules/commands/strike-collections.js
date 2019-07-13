@@ -233,7 +233,7 @@ class strikeCollection {
         const run = async () => {
 
             //  Returns when the message comes from non-staff channel.
-            if (![`sandbox`, `naph-little-house`, `staff-hq`].includes(message.channel.name)) return log({ code: `UNAUTHORIZED` });
+            if (![`sandbox`, `headquarter`, `overseer`].includes(message.channel.name)) return log({ code: `UNAUTHORIZED` });
 
 
             //  Returns tutorial
