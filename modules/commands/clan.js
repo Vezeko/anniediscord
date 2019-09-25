@@ -9,15 +9,23 @@ class clan_wrapper {
         this.stacks     = Stacks;
     }
     async execute() {
+        const Discord = require('discord.js');                      //  Temporary
+        const env = require('../../.data/environment.json');        //  Temporary
+        const sql = require('sqlite');
+        sql.open('.data/database.sqlite');
+
         let authorname  = this.stacks.meta.author.user.username
         let bot         = this.stacks.bot;
         let message     = this.stacks.message;
         let args        = this.stacks.args;
-        let code        = this.stacks.code;
         let palette     = this.stacks.palette;
         let emoji       = this.stacks.emoji;
         let pause       = this.stacks.pause;
 
+        const commandname = exports.help.name;
+        const prefix = env.prefix;                                  //  Temporary
+        const delay = 200;
+        const timeout1 = 60000;
         
         /***************************************************************************************************
          * GLOBAL VARIABLE INITIALIZATION
@@ -25,32 +33,37 @@ class clan_wrapper {
         /*  Global General-Purpose Data
          *  Put data that will be used within any sub-command 
          */
-        const Discord = require('discord.js');                      //  Temporary
-        const env = require('../../.data/environment.json');        //  Temporary
-
-        const commandname = exports.help.name;
-        const prefix = env.prefix;                                  //  Temporary
-        
-        const delay = 200;
-        const timeout1 = 60000;
-        const promptcolor = palette.darkmatte;
-        const collectorcolor = palette.green;
-
-        const sql = require('sqlite');
-        const sqlpath = '.data/database.sqlite';
-        sql.open(sqlpath);
 
         const authorfilter = m => m.author.id === message.author.id;
-        const collector = new Discord.MessageCollector(
-            message.channel,
-            m => m.author.id === message.author.id, {
-                max: 1,
-                time: 30000,
+
+        const meta = {
+            create: {
+                price: 20000,
+                level: -1
+            },
+            change: {
+                name: {
+                    price: 20000,
+                    level: -1
+                },
+                tag: {
+                    price: 10000,
+                    level: -1
+                },
+                color: {
+                    price: 200,
+                    level: -1
+                },
+                motto: {
+                    price: 100,
+                    level: -1
+                }
+
             }
-        );
+        }
 
         //  Initialize special globals
-        let user, target, msg, cmdpath, accessmap
+        let user, target, userclan, msg, cmdpath, accessmap
 
         /***************************************************************************************************
          * GLOBAL CLASS / FUNCTION INITIALIZATION
@@ -73,18 +86,24 @@ class clan_wrapper {
             get roles()         { return this.$client.roledata }
             //  PUBLIC OUTPUT: Server Database Data
             get level()         { return this.$userdata.level }
+            get clanid()        { return this.$userdata.clanId }
             get artcoins()      { return this.$userinventories.artcoins }
-            get clantag()       { return null }
-            get nametag()       { return null }
-            get isLeader()      { return false }
-            get isMember()      { return false }
+            get isLeader()      { return this.$userstatus.clanleader === 'True' ? true : false }
+            get isMember()      { return this.$userstatus.clanmember === 'True' ? true : false }
+
+            get applications()  { return this.$applications }
+            get invitations()   { return this.$invitations }
+            get hasApplied()    { return this.$applications.length > 0 ? true : false }
+            get beenInvited()   { return this.$invitations.length > 0 ? true : false }
 
 
             //  OBTAIN: Property Container Functions
             async _get_user() { this.$client = await this._findUser() }
-            async _get_userData() { this.$userdata = await sql.get(`SELECT * FROM userdata WHERE userID = "${this.$client.id}"`) }
-            async _get_inventory() { this.$userinventories = await sql.get(`SELECT * FROM userinventories WHERE userID = "${this.$client.id}"`) }
-            async _get_userCheck() { this.$userstatus = await sql.get(`SELECT * FROM usercheck WHERE userID = "${this.$client.id}"`) }
+            async _get_userData() { this.$userdata = await sql.get(`SELECT * FROM userdata WHERE userId = ?`, this.id) }
+            async _get_inventory() { this.$userinventories = await sql.get(`SELECT * FROM userinventories WHERE userId = ?`, this.id) }
+            async _get_userCheck() { this.$userstatus = await sql.get(`SELECT * FROM usercheck WHERE userId = ?`, this.id) }
+            async _get_invitations() { this.$invitations = await sql.all(`SELECT ALL clanId FROM clanmember WHERE status = 'invited' AND userId = ?`, this.id)}
+            async _get_applications() { this.$applications = await sql.all(`SELECT ALL clanId FROM clanmember WHERE status = 'applied'AND userId = ?`, this.id)}
             async _get_userRoles() {
                 let allroles = await this.$client.roles.array();
                 this.$client.roledata = {}; 
@@ -109,18 +128,17 @@ class clan_wrapper {
                 return message.guild.members.get(bot.user.id).hasPermission("MANAGE_NICKNAMES") &&
                 message.guild.members.get(bot.user.id).hasPermission("CHANGE_NICKNAME");
             }
-            async _setNickname(newnickname) {
+ 
+
+
+            // PUBLIC METHODS
+            async setNickname(newnickname) {
                 await this._get_user();
                 if (await this._botHasNicknamePerms()) {
                     await this.$client.setNickname(newnickname);
                     await this._get_user();
                 } else throw error;
             }
-
-
-            // PUBLIC METHODS
-            async addClanTag() {}
-            async removeClanTag() {}
             async init() {
                 if (await this._isValidUser()) {
 
@@ -130,31 +148,32 @@ class clan_wrapper {
                     await this._get_userData();
                     await this._get_inventory();
                     await this._get_userCheck();
+                    await this._get_applications();
+                    await this._get_invitations();
 
                 } else this._exists = false
                 return this
             }      
         }
 
-        class Member extends User {
-
-        }
-
         class Clan {
             constructor(search = null) {
                 this._input = search;
                 this._exists = false;
-                if (!this._input) 
-                this.$data = {
-                    id: null,
-                    name: null,
-                    tag: null,
-                    motto: null,
-                    color: null,
-                    leader: null,
-                    maxmembers: null,
-                    foundingdate: null
-                };
+                if (!this._input) {
+                    this.$data = {
+                        id: null,
+                        name: null,
+                        tag: null,
+                        motto: null,
+                        color: null,
+                        leader: null,
+                        maxmembers: null,
+                        foundingdate: null
+                    };
+                    this.$applications = [];
+                    this.$invitations = [];
+                }
             }
 
             //  PUBLIC OUTPUT
@@ -170,14 +189,22 @@ class clan_wrapper {
             get leaderid()      { return this.$data.leader }
             get maxmembers()    { return this.$data.maxmembers }
             get foundingdate()  { return this.$data.foundingdate }
+            get hoist()         { return this.$data.hoist }
+            get isHoist()       { return this.$data.hoist === 'True' ? true : false}
 
-            get members()       { return this.$members}
+            get members()       { return this.$members }
+            get applications()  { return this.$applications }
+            get invitations()   { return this.$invitations }
+            get recievedapps()  { return this.$applications.length > 0 ? true : false }
+            get sentinvites()   { return this.$invitations.length > 0 ? true : false }
 
             //  OBTAIN: Property Container Functions
             async _get_clanData() { this.$data = await this._findClan() }
+            async _get_invitations() { this.$invitations = await sql.all(`SELECT ALL userId FROM clanmember WHERE status = 'invited' AND clanId = ?`, this.id) }
+            async _get_applications() { this.$applications = await sql.all(`SELECT ALL userId FROM clanmember WHERE status = 'applied' AND clanId = ?`, this.id) }
 
             //  PRIVATE UTILITY METHODS
-            async _isValidClan() { return await this._findClan() ? true : false}
+            async _isValidClan() { return await this._findClan() ? true : false }
             async _findClan(search = this._input) {
                 let cmd = `
                     SELECT * 
@@ -191,40 +218,56 @@ class clan_wrapper {
                     search
                 ]);
             }
-            async _newRole() {
-                let roledata = {
-                    name: this.$data.name,
-                    position: message.guild.roles.find(x => x.id === '598256155235582047').position - 1,
-                    permissions: 0x00,
-                }
-                return await (message.guild.createRole(roledata, `New Clan Role!`));
+            async _nameExists() {
+                return (await sql.get(`
+                    SELECT * 
+                    FROM clandata 
+                    WHERE replace(lower(name), ' ', '') = ? 
+                    AND id <> ?`, 
+                    [this.name.toLowerCase().replace(' ', ''), this.id])) ? true : false
             }
-
-            //  PUBLIC METHODS
-            async init() {
-                if (this._input && await this._isValidClan()) {
-
-                    this._exists = true;
-                    await this._get_clanData();
-
-                } else this._exists = false;
+            async _tagExists() {
+                return (await sql.get(`
+                    SELECT * 
+                    FROM clandata 
+                    WHERE replace(lower(tag), ' ', '') = ? 
+                    AND id <> ?`, 
+                    [this.tag.toLowerCase().replace(' ', ''), this.id])) ? true : false
+            }
+            async _addRoleTo(member) {
+                await member.client.addRole(this.id) 
+            }
+            async _removeRoleFrom(member) {
+                await member.client.removeRole(this.id)
+            }
+            async _updateAllTags() {
+                let memberlist = await sql.all(`SELECT userId FROM clanmember WHERE clanId = ? AND status = 'joined'`, this.id)
+                memberlist.forEach(async e => {
+                    let tag = ''
+                    let new_nickname
+                    let member = message.guild.members.get(e.userId)
+                    member.nickname
+                        ? new_nickname = member.nickname.replace(RegExp(/\s*『[^『』]*』/g), '')
+                        : new_nickname = member.user.username.replace(RegExp(/\s*『[^『』]*』/g), '')
+                    if (this.tag) tag = ` 『${this.tag}』`
+                    new_nickname = `${new_nickname.slice(0, 32-tag.length)}${tag}`
+                    try { await member.setNickname(new_nickname.slice(0, 32)) }
+                    catch (e) { console.log(`Failed to modify clan tag: ${member.user.username} | ${member.id}`) }
+                    return this
+                })
+            }
+            async _removeTagFrom(member) {
+                let new_nickname
+                member.nickname
+                    ? new_nickname = member.nickname.replace(RegExp(/『[^『』]*』\s*/g), '')
+                    : new_nickname = member.name.replace(RegExp(/『[^『』]*』\s*/g), '')
+                try { await member.setNickname(new_nickname.slice(0, 32)) }
+                catch (e) { console.log(`Failed to remove clan tag: ${member.name} | ${member.id}`) }
                 return this
             }
-            async setLeader(leader) {
-
-                return this
-            }
-            async addMember(member) {
-                await member.$client.addRole(this.$data.id)
-                return this
-            }
-            async removeMember(member) {
-
-                return this
-            }
 
 
-            //  NEW CLAN METHODS
+            //  SET CLAN DATA METHODS
             setName(name) {
                 this.$data.name = name.slice(0,100)
                 return this
@@ -235,41 +278,152 @@ class clan_wrapper {
             }
             setColor(hex) {
                 let color = hex.replace(/^#/,'')
-                if (RegExp(/^[0-9A-F]{6}$/i).test(color))
-                this.$data.color = color
+                if (RegExp(/^[0-9A-F]{6}$/i).test(color)) this.$data.color = color.toUpperCase()
+                else if (RegExp(/^[A-F0-9]{3}$/i).test(color)) {
+                    let HEX6 = []
+                    color.split('').forEach(hex => HEX6.push(hex, hex))
+                    this.$data.color = HEX6.join('').toUpperCase()
+                }
                 return this
             }
             setMotto(motto) {
                 this.$data.motto = motto
                 return this
             }
-            async create() {
-                if (!this._input) {
-                    
-                    msg .clearData()
-                        .setColor(palette.darkmatte)
-                        .setFooter(`Canceled.`)
-                    let description = []
-                    if (await sql.get(`SELECT * FROM clandata WHERE replace(lower(name), ' ', '') = ?`, this.$data.name.toLowerCase())) {
-                        description.push(`• Clan name "**\`${this.$data.name}\`**" already exist.`)
-                        this._exists = true;
-                    }
-                    if (await sql.get(`SELECT * FROM clandata WHERE replace(lower(tag), ' ', '') = ?`, this.$data.tag.toLowerCase())) {
-                        description.push(`• Clan tag "**\`${this.$data.tag}\`**" already exists.`)
-                        this._exists = true;
-                    }
-
-                    if (this._exists) msg.setDescription(description.join(`\n`)).send()
-                    else {
-                        let role = await this._newRole();
-                        this.$data.id = role.id;
-                        await sql.run(`INSERT INTO clandata (id, name, tag, motto, color, leader, maxmembers, foundingdate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                                        [this.$data.id, this.$data.name, this.$data.tag, this.$data.motto, this.$data.color, user.id, 5, Date.now()])
-                    }
-                }
+            setHoist(input) {
+                if (input === 'True' || input === 'False')
+                this.$data.hoist = input
                 return this
             }
 
+            //  COMMAND METHODS
+            async clanList() { 
+                return await sql.all(`SELECT * FROM clandata`) 
+            }
+            async updateMember(member, type, status) {
+                const userJoined = async() => {
+                    await sql.run(`DELETE FROM clanmember WHERE userId = ?`, member.id)
+                    await sql.run(`INSERT INTO clanmember (clanId, userId, type, status, date) VALUES (?, ?, ?, 'joined', ?)`,
+                        [this.id, member.id, type.toLowerCase(), Date.now()])
+                    await sql.run(`UPDATE userdata SET clanId = ? WHERE userId = ?`, [this.id, member.id])
+                    if (type.toLowerCase() === 'leader') 
+                        await sql.run(`UPDATE usercheck SET clanmember = 'True', clanleader = 'True' WHERE userId = ?`, member.id)
+                    else if (type.toLowerCase() === 'member')
+                        await sql.run(`UPDATE usercheck SET clanmember = 'True', clanleader = 'False' WHERE userId = ?`, member.id)
+                    await this._addRoleTo(member)
+                    await this._updateAllTags()
+                }
+                const userInvited = async() => {
+                    let applied = (await sql.get(`SELECT * FROM clanmember WHERE clanId = ? AND userId = ? AND status = 'applied'`,
+                        [this.id, member.id])) ? true : false
+                    if (applied) await userJoined()
+                    else await sql.run(`INSERT INTO clanmember (clanId, userId, type, status, date) VALUES (?, ?, ?, 'invited', ?)`,
+                            [this.id, member.id, type.toLowerCase(), Date.now()])
+                }
+                const userApplied = async() => {
+                    let invited = (await sql.get(`SELECT * FROM clanmember WHERE clanId = ? AND userId = ? AND status = 'invited'`,
+                        [this.id, member.id])) ? true : false
+                    if (invited) await userJoined()
+                    else await sql.run(`INSERT INTO clanmember (clanId, userId, type, status, date) VALUES (?, ?, ?, 'applied', ?)`,
+                            [this.id, member.id, type.toLowerCase(), Date.now()])
+                }
+                const userLeave = async() => {
+                    await sql.run(`DELETE FROM clanmember WHERE clanId = ? AND userId = ?`,[this.id, member.id])
+                    await sql.run(`UPDATE userdata SET clanId = ? WHERE userId = ?`, [null, member.id])
+                    await sql.run(`UPDATE usercheck SET clanmember = 'False', clanleader = 'False', clancooldown = ? WHERE userId = ?`, [Date.now(), member.id])
+                    await this._removeRoleFrom(member)
+                    await this._removeTagFrom(member)
+                }
+                const userRemove = async() => {
+                    await sql.run(`DELETE FROM clanmember WHERE clanId = ? AND userId = ?`,[this.id, member.id])
+                    await sql.run(`UPDATE userdata SET clanId = ? WHERE userId = ?`, [null, member.id])
+                    await sql.run(`UPDATE usercheck SET clanmember = 'False', clanleader = 'False' WHERE userId = ?`, member.id)
+                    await this._removeRoleFrom(member)
+                    await this._removeTagFrom(member)
+                }
+
+                let typemap = ['leader','member']
+                let statusmap = {
+                    joined  : userJoined,
+                    invited : userInvited,
+                    applied : userApplied,
+                    leave   : userLeave,
+                    remove  : userRemove,
+                }
+
+                if (typemap.includes(type.toLowerCase()) && statusmap.hasOwnProperty(status.toLowerCase()))
+                return await statusmap[status]()
+            }
+            async updateData() {
+                this._exists = false;
+                let description = [];
+                msg .setColor(palette.darkmatte)
+                    .setFooter(`Canceled.`)
+                if (await this._nameExists()) { description.push(`• Clan name "**\`${this.name}\`**" already exist.`); this._exists = true; }
+                if (await this._tagExists()) { description.push(`• Clan tag "**\`${this.tag}\`**" already exists.`); this._exists = true; }
+                if (this._exists) msg.setDescription(description.join(`\n`)).send()
+                else {
+                    await sql.run(`UPDATE clandata SET name = ?, tag = ?, motto = ?, color = ?, leader = ?, maxmembers = ?, hoist = ? WHERE id = ?`,
+                        [this.name, this.tag, this.motto, this.color, this.leaderid, this.maxmembers, this.hoist, this.id])
+                    this._input = this.id
+                    await this.init()
+                    let role = await message.guild.roles.get(this.id)
+                    await role.setName(this.name)
+                    await role.setColor(this.color)
+                    await role.setHoist(this.isHoist)
+                    await this._updateAllTags()
+                }
+            }
+            async create() {
+                this._exists = true;
+                this.$data.id = 'Pending'
+                let description = [];
+                msg .setColor(palette.darkmatte)
+                    .setFooter(`Canceled.`)
+
+                if (await this._nameExists()) { description.push(`• Clan name "**\`${this.name}\`**" already exist.`); this._exists = false; }
+                if (await this._tagExists()) { description.push(`• Clan tag "**\`${this.tag}\`**" already exists.`); this._exists = false; }
+                if (!this._exists) msg.setDescription(description.join(`\n`)).send()
+                else {
+                    let role = await (message.guild.createRole({
+                        name: this.$data.name,
+                        position: message.guild.roles.find(x => x.id === '598256155235582047').position - 1,
+                        permissions: 0x00}, `New Clan Role!`));
+                    this.$data.id = role.id;
+                    await sql.run(`INSERT INTO clandata (id, name, tag, motto, color, leader, maxmembers, foundingdate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                        [this.id, this.name, this.tag, this.motto, this.color, user.id, 5, Date.now()])
+                    await this.updateMember(user, 'leader', 'joined')
+                    this._input = this.id
+                    await this.init()
+                }
+            }
+            async disband() {
+                let memberlist = await sql.all(`SELECT userId FROM clanmember WHERE clanId = ? AND status = 'joined'`, this.id)
+                memberlist.forEach(async e => { 
+                    let target = await new User(e.userId).init();
+                    await this.updateMember(target, 'member', 'remove') 
+                })
+                await sql.run(`DELETE FROM clandata WHERE id = ?`, this.id)
+                await sql.run(`DELETE FROM clanmember WHERE clanId = ?`, this.id)
+                let role = message.guild.roles.get(this.id)
+                if (role) await role.delete(`Clan '${this.name}' disbanded.`) 
+                this._input = this.id
+                await this.init()
+            }
+
+
+            //  PUBLIC METHODS
+            async init() {
+                if (this._input && await this._isValidClan()) {
+                    
+                    this._exists = true;
+                    await this._get_clanData();
+                    await this._get_invitations();
+                    await this._get_applications();
+
+                } else this._exists = false;
+                return this
+            }
 
         }
 
@@ -278,23 +432,25 @@ class clan_wrapper {
                 this.name = name.toLowerCase();
                 this.alias = [];
                 this.info = "Command Information not set.";
-                this.arguments = [];
-                this.name === 'help' 
+                (this.name === 'help' || this.name === 'divider')
                     ? this.commandlist = [] 
-                    : this.commandlist = [help];
-                this.input = { 
-                    prompt: new Embed()
-                        .setColor(promptcolor)
-                        .setDescription(`No prompt message set.`),
-                    require: false
-                };
+                    : this.commandlist = [help, divider];
                 this.access = {
                     clanstatus: "public",
+                    memberapps: "public",
+                    clanapps: "public",
                     roles: "developer",
                     level: -1
                 };
+                this.input = { 
+                    prompt: new Embed()
+                        .setColor(msg.promptcolor)
+                        .setDescription(`No prompt message set.`),
+                    require: false
+                };
+                this.arguments = [];
             }
-
+            
             //  PRIVATE UTILITY METHOD
             _isString(input) { return typeof input === 'string' || input instanceof String }
             _isArray(input) { return input && typeof input === 'object' && input.constructor === Array  }
@@ -308,11 +464,6 @@ class clan_wrapper {
             }
             setInfo(input) {
                 if (this._isString(input)) this.info = input;
-                return this
-            }
-            setArguments(input) {
-                if (this._isArray(input) && input.every(this._isString)) this.arguments = input;
-                if (this._isString(input)) this.arguments.push(input);
                 return this
             }
             setCommandList(input) {
@@ -333,8 +484,74 @@ class clan_wrapper {
                 for (let group in input) {
                     if (this.input.hasOwnProperty(group) && typeof this.input[group] === typeof input[group])
                     this.input[group] = input[group];
+                    if (group === 'prompt' && input[group].description && input[group].description.includes('[SUBCOMMANDLIST]'))
+                    this.input[group].description = input[group].description.replace(`[SUBCOMMANDLIST]`, this.outputCommandList())
                 }
                 return this
+            }
+            setArguments(input) {
+                let set = []
+                if (this._isArray(input)) {
+                    input.forEach(e => {
+                        if (this._isObject(e)) {
+                            let temp = {}
+                            if (e.hasOwnProperty('msg') && this._isString(e.msg)) {
+                                e.hasOwnProperty('arg') && this._isString(e.arg)
+                                    ? temp.arg = e.arg
+                                    : temp.arg = e.msg
+                                temp.msg = e.msg;
+                                e.hasOwnProperty('cond') && this._isString(e.cond)
+                                    ? temp.cond = e.cond
+                                    : temp.cond = null
+                                set.push(temp)
+                            } 
+                        } 
+                        else if (this._isString(e)) set.push({ arg: e, msg: e, cond: null})
+                        else set.push({ arg: `???`, msg: 'Error: Invalid Argument Format', cond: null})
+                    })
+                } 
+                else if (this._isObject(input)) {
+                    let temp = {}
+                    if (input.hasOwnProperty('msg') && this._isString(input.msg)) {
+                        input.hasOwnProperty('arg') && this._isString(input.arg)
+                            ? temp.arg = input.arg
+                            : temp.arg = input.msg
+                        temp.msg = input.msg;
+                        input.hasOwnProperty('cond') && this._isString(input.cond)
+                            ? temp.cond = input.cond
+                            : temp.cond = null
+                        set.push(temp)
+                    } 
+                }
+                else if (this._isString(input)) set.push({ arg: input, msg: input, cond: null})
+                else set.push({ arg: `???`, msg: 'Error: Invalid Argument Format', cond: null})
+                this.arguments = set;
+                return this
+            }
+
+            //  PUBLIC UTILITY METHODS
+            outputCommandList() {
+                let longest = 0
+                let outputlist = []
+                let sublist = []
+                let list = this.commandlist
+                for (let e of list) { 
+                    if (new Subcommand(this, e.metadata.name).init().accessGranted() && e.metadata.name.length > longest) 
+                    longest = e.metadata.name.length 
+                }
+                for (let e of list) {
+                    if (e.metadata.name === 'divider') {
+                        if (sublist.length > 0) {
+                            outputlist.push(msg.codeBlock(sublist.join(`\n`),`HTTP`)); sublist = []
+                        }
+                    } else {
+                        let tab = ''
+                        for (let i = 0; i < longest - e.metadata.name.length; i++) {tab += ' '}
+                        if (new Subcommand(this, e.metadata.name).init().accessGranted())
+                        sublist.push(`• ${e.metadata.name} ${tab}: ${e.metadata.info}`)
+                    }
+                }
+                return `**${outputlist.join('')}**`
             }
         }
         
@@ -347,13 +564,27 @@ class clan_wrapper {
 
             //  PUBLIC OUTPUT
             get input()     { return this._input }
-            get name()      { return this.$subcommand.metadata.name }
             get exists()    { return this._exists }
+            
+            //  CURRENT SUBCOMMAND
+            get metadata()      { return this.$subcommand.metadata }
+            get name()          { return this.metadata.name }
+            get alias()         { return this.metadata.alias}
+            get info()          { return this.metadata.info }
+            get commandlist()   { return this.metadata.commandlist }
+            get arguments()     { return this.metadata.arguments }
+            get input()         { return this.metadata.input }
+            get access()        { return this.metadata.access }
 
-            set input(input) {
-                this._input = input;
-                this.init();
-            }
+            //  INVOKING COMMAND
+            get i_metadata()    { return this.$invoker }
+            get i_name()        { return this.i_metadata.name }
+            get i_alias()       { return this.i_metadata.alias }
+            get i_info()        { return this.i_metadata.info }
+            get i_commandlist() { return this.i_metadata.commandlist }
+            get i_arguments()   { return this.i_metadata.arguments }
+            get i_input()       { return this.i_metadata.input }
+            get i_access()      { return this.i_metadata.access }
 
             //  OBTAIN: Property Container Functions
             _get_subcommand() { this.$subcommand = this._findSubcommand() }
@@ -363,7 +594,7 @@ class clan_wrapper {
             _normalizeSubcommand() { if (this._input) { this._input = this._input.toLowerCase() } }
             _findSubcommand() {
                 let subcommand = null;
-                this.$invoker.commandlist.forEach((element) => {
+                this.i_commandlist.forEach((element) => {
                     if (element.metadata.name === this._input || element.metadata.alias.indexOf(this._input) >= 0) { subcommand = element }
                 })
                 return subcommand
@@ -376,32 +607,23 @@ class clan_wrapper {
                 return false
             }
             _checkLevel(value) { return user.level >= value }
+            _checkMemberApps(value) { return accessmap.memberapps[value] }
+            _checkClanApps(value) { return accessmap.clanapps[value] }
             accessGranted() {
                 let check = {
                     "clanstatus" : this._checkClanStatus,
+                    "memberapps" : this._checkMemberApps,
+                    "clanapps" : this._checkClanApps,
                     "roles" : this._checkRoles,
                     "level" : this._checkLevel
                 }
                 let lock = [];
-                for (let key in this.$subcommand.metadata.access) { lock.push(check[key](this.$subcommand.metadata.access[key])) }
+                for (let key in this.access) { lock.push(check[key](this.access[key])) }
                 return lock.every(e => e === true)
             }
 
 
             //  PUBLIC METHODS
-            formattedinvokerCommandList() {
-                let longest = 0
-                let outputlist = []
-                let list = this.$invoker.commandlist
-                for (let e of list) { if (e.metadata.name.length > longest) longest = e.metadata.name.length }
-                for (let e of list) {
-                    let tab = ''
-                    for (let i = 0; i < longest - e.metadata.name.length; i++) {tab += ' '}
-                    if (new Subcommand(this.$invoker, e.metadata.name).init().accessGranted())
-                    outputlist.push(`• ${e.metadata.name} ${tab}: ${e.metadata.info}`)
-                }
-                return outputlist.join(`\n`);
-            }
             init() {
                 this._normalizeSubcommand()
                 if (this._isValidSubCommand()) { 
@@ -413,26 +635,21 @@ class clan_wrapper {
                 return this
             }
             async execute() {
-
-                if (!this.accessGranted()) return msg.embedWrapper(palette.red, `Sorry ${user.name}...\nYou don't have access to this command. ${emoji(`aauSatanialaugh`,bot)}`)
+                if (!this.accessGranted()) return msg.prompt(`Not Availible.`).send()
                 else {
                     args.shift();
-                    
                     let current = false;
                     let next = false;
                     let collect = false;
                     if (args[0]) {
-                        if (new Subcommand(this.$subcommand.metadata).init().exists) next = true
-                        else if (this.$subcommand.metadata.arguments.length - args.length <= 0) current = true
-                        else await this.$subcommand.metadata.input.prompt.send().then(async prompt => {
+                        if (new Subcommand(this.metadata).init().exists) next = true
+                        else if (this.arguments.length - args.length <= 0) current = true
+                        else await this.input.prompt.send().then(async prompt => {
                             collect = true;
-                            for (let e of this.$subcommand.metadata.arguments.slice(args.length)) {
+                            for (let e of this.arguments.slice(args.length)) {
                                 await pause(delay)
-                                msg .clearData()
-                                    .setColor(collectorcolor)
-                                    .setDescription(`${msg.codeBlock(`${e}?`,`CSS`,`**`)}`)
-                                    .setFooter(`Type \'cancel\' to quit.`)
-                                
+                                msg.collect(`**${e.msg}**`)
+                                e.cond ? msg.setFooter(e.cond) : msg.setFooter(msg.cancel)
                                 await msg.send().then(async m => {
                                     await message.channel.awaitMessages(authorfilter, { maxMatches: 1, time: timeout1, errors: ['time']})
                                         .then(async collected => {
@@ -441,26 +658,25 @@ class clan_wrapper {
                                             await m.delete();
                                             args.push(collected.first().content);
                                             current = true;
-                                            ["CANCEL", "EXIT", "QUIT"].forEach(e => { if (e === collected.first().content.toUpperCase()) return current = false });
+                                            if (["CANCEL", "EXIT", "QUIT"].includes(collected.first().content.toUpperCase())) {
+                                                msg.prompt(msg.canceled).send()
+                                                return current = false
+                                            }
                                         })
                                         .catch(async () => { await m.delete(); return current = false; });
                                 });
                                 if (!current) break;
                             }
-                            //await pause(delay) 
-                            //await prompt.delete()
                         })
 
                     } else {
-                        if (!this.$subcommand.metadata.input.require) current = true
-                        else await this.$subcommand.metadata.input.prompt.send().then(async prompt => {
+                        if (!this.input.require) current = true
+                        else await this.input.prompt.send().then(async prompt => {
                             collect = true;
-                            for (let [i, e] of this.$subcommand.metadata.arguments.entries()) {
-                                msg .clearData()
-                                    .setColor(collectorcolor)
-                                    .setDescription(`${msg.codeBlock(`${e}?`,`CSS`,`**`)}`)
-                                    .setFooter(`Type \'cancel\' to quit.`)
-                                
+                            if (this.arguments.length === 0) current = true
+                            else for (let [i, e] of this.arguments.entries()) {
+                                msg.collect(`**${e.msg}**`)
+                                e.cond ? msg.setFooter(e.cond) : msg.setFooter(msg.cancel)
                                 await pause(delay)
                                 await msg.send().then(async m => {
                                     await message.channel.awaitMessages(authorfilter, { maxMatches: 1, time: timeout1, errors: ['time']})
@@ -470,15 +686,25 @@ class clan_wrapper {
                                         await m.delete();
                                         args.push(collected.first().content);
                                         current = true;
-                                        ["CANCEL", "EXIT", "QUIT"].forEach(e => { if (e === collected.first().content.toUpperCase()) return next = current = false });
-                                        if (i === 0 && new Subcommand(this.$subcommand.metadata).init().exists) { next = true; return current = false; }
+                                        if (["CANCEL", "EXIT", "QUIT"].includes(collected.first().content.toUpperCase())) {
+                                            msg.prompt(msg.canceled).send()
+                                            return next = current = false 
+                                        }
+                                        if (i === 0 && (await new Subcommand(this.metadata).init()).exists) { next = true; return current = false; }
+                                        else {
+                                            let check = args[0].split(" ");
+                                            if (i === 0 && (await new Subcommand(this.metadata, check[0]).init()).exists) {
+                                                args = [...check]
+                                                args = msg.decrypt(args)
+                                                next = true
+                                                return current = false;
+                                            }
+                                        }
                                     })
                                     .catch(async () => { m.delete(); return next = current = false; });
                                 });
                                 if (!current) break;
                             }
-                            //await pause(delay) 
-                            //await prompt.delete() 
                         })
 
                     }
@@ -487,11 +713,11 @@ class clan_wrapper {
                     if (collect) await pause(delay)
                     if (current) {
                         this._input.toLowerCase() === 'help' 
-                            ? this.$subcommand.execute(this.$invoker) 
-                            : this.$subcommand.execute(this.$subcommand.metadata)
+                            ? this.$subcommand.execute(this.i_metadata) 
+                            : this.$subcommand.execute(this.metadata)
                     }
                     else if (next) {
-                        let nextsubcommand = new Subcommand(this.$subcommand.metadata).init()
+                        let nextsubcommand = new Subcommand(this.metadata).init()
                         return nextsubcommand.execute(nextsubcommand.metadata)
                     }
                 }
@@ -503,6 +729,22 @@ class clan_wrapper {
         class Embed extends Discord.RichEmbed {
             constructor() { super() }
 
+            get en()    { return ` ` }
+            get em()    { return ` ` }
+            get div()   { return `${this.en}•${this.en}` }
+            get arrow() { return `${this.en}🡆${this.en}` }
+            
+            get promptcolor()       { return palette.darkmatte }
+            get collectorcolor()    { return palette.golden }
+            
+            get confirm()           { return `Confirm?${this.en}y / n` }
+            get completed()         { return `Completed.` }
+            get canceled()          { return `Canceled.` }
+            get error()             { return `Error.`}
+            get cancel()            { return `[cancel]` }
+            get help()              { return `[help]` }
+            get help_cancel()       { return `[help]${msg.div}[cancel]` }
+
             //  Private Methods
             _formatString(input) { let s = input; return input = s.replace(/(^\s+)|(\s+$)/g,"").replace(/\n[ \t]+/g,"\n") }
             _formatAllStrings() {
@@ -512,21 +754,31 @@ class clan_wrapper {
                     if (key1 === "fields") { this[key1].forEach((e) => { for (let key in e) { if (typeof e[key] === "string") e[key] = this._formatString(e[key]) } }) }
                 }
             }
+            _clear() { for (let key in this) { typeof this[key] !== "object" ? this[key] = undefined : this[key] = [] }; return this}
 
             //  Public Methods
             send() { 
-                this._formatAllStrings(); 
-                return message.channel.send(this); 
+                this._formatAllStrings();
+                let output = new Embed()
+                Object.assign(output, this)
+                this._clear()
+                return message.channel.send(output); 
             }
             sendTo(channel) {
                 this._formatAllStrings();
+                let output = new Embed()
+                Object.assign(output, this)
+                this._clear()
                 return /^\d+$/.test(channel) ?
-                    bot.channels.find(x => x.id === channel).send(this) :
-                    bot.channels.find(x => x.name === channel.toLowerCase()).send(this);
+                    bot.channels.find(x => x.id === channel).send(output) :
+                    bot.channels.find(x => x.name === channel.toLowerCase()).send(output);
             }
             sendDM(target) {
-                this._formatAllStrings(); 
-                return target.client.send(this);
+                this._formatAllStrings();
+                let output = new Embed()
+                Object.assign(output, this)
+                this._clear()
+                return target.client.send(output);
             }   
             sendRaw(text) { return message.channel.send(this._formatString(text)); }
             sendRawTo(channel, text) {
@@ -536,140 +788,113 @@ class clan_wrapper {
             }
             sendRawDM(target, text) { return target.client.send(this._formatString(text)); }
             
-            //  Legacy Support Method
-            embedWrapper(color, text) { return this.clearData().setColor(color).setDescription(this._formatString(text)).send() }
+            //  Shortcut Method
+            embedWrapper(color, text) { return this.setColor(color).setDescription(this._formatString(text)).send() }
+            prompt(text, footer = '') { return this.setColor(this.promptcolor).setDescription(this._formatString(text)).setFooter(footer) }
+            collect(text, footer = '') { return this.setColor(this.collectorcolor).setDescription(this._formatString(text)).setFooter(footer) }
 
             //  Utility Methods
-            clearData() { for (let key in this) { typeof this[key] !== "object" ? this[key] = undefined : this[key] = [] }; return this}
             formatComma(x) { return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
             codeBlock(message, style = ``, markdown = ``) { return `${markdown}\`\`\`${style}\n${this._formatString(message)}\`\`\`${markdown.split("").reverse().join("")}` }
-        }
-        
-        function ClanOld(name) {
+            async collectAndRespond(data) {
+                data.prompt.send().then(async confimration => {
+                    await message.channel.awaitMessages(authorfilter, { maxMatches: 1, time: timeout1 }).then(async collected => {
+                        await pause(delay)
+                        await collected.first().delete();
+                        await confimration.delete();
+                        let check
+                        if (data.match) {
+                            if (data.match.toLowerCase() === 'exact') check = data.input.includes(collected.first().content)
+                        } else check = data.input.includes(collected.first().content.toLowerCase())
 
-            this.addMember = async(user_id) => {
-                let target = message.guild.members.array().find(x => x.id === user_id)
-                await addClanRole(target)
-                msg.embedWrapper(palette.green, `**You have been assigned a new role!**`)
-                await addClanTag(target)
-                return msg.embedWrapper(palette.green, `**You have been given a new clan tag!**`)
+                        if (check) {
+                            this.sendRaw(`\`${data.loading}\``).then(async loading => {
+                                await data.action()
+                                await pause(delay)
+                                await loading.delete()
+                                await data.respond()
+                            })
+                        } else this.prompt(this.canceled).send()
+                    })
+                })
             }
-
-            const addClanRole = async(target) => await target.addRole(metadata.id)
-
-            const addClanTag = async(target) => {
-                if (await hasNicknamePerms(bot.user.id)) {
-                    let old_nickname = target.nickname
-                    message.guild.members.get(target.id).setNickname(`『${metadata.tag}』${old_nickname}`)
-                } else return msg.embedWrapper(palette.red, `Sorry, I dont have the required permsissions to change nicknames...`);
-            }
-
-            const isValidClan = async(clan) => {
-                sql.get(SELECT)
+            decrypt(input) {
+                let single = 0
+                let double = 0
+                let storage = []
+                let decode = []
+                input.forEach(e => {
+                    if(/^'/.test(e)) { if(single === 0 && double === 0) e = e.replace(`'`,``); single++ }
+                    if(/^"/.test(e)) { if(single === 0 && double === 0) e = e.replace(`"`,``); double++ }
+                    if(/'$/.test(e)) { single--; if(single === 0 && double === 0) e = e.replace(`'`,``) }
+                    if(/"$/.test(e)) { double--; if(single === 0 && double === 0) e = e.replace(`"`,``) }
+                    if(single === 0 && double === 0){
+                        if(/[^\s]/.test(e)) { 
+                            storage.push(e)
+                            decode.push(storage.join(' '))
+                            storage = [] 
+                        } 
+                    } else storage.push(e)
+                })
+                return [...decode]
             }
 
         }
 
         //  Define special globals
         user = await new User(authorname).init();
+        userclan = await new Clan(user.clanid).init();
         msg = new Embed();
         cmdpath = []
         accessmap = {
             clanstatus : {
-                public : true,
-                member : user.isMember,
-                leader : user.isLeader,
-                notmember : !user.isMember,
-                notleader : !user.isLeader,
+                public      : true,
+                member      : user.isMember,
+                leader      : user.isLeader,
+                not_member  : !user.isMember,
+                not_leader  : user.isMember && !user.isLeader
+            },
+            memberapps : {
+                public       : true,
+                been_invited : user.beenInvited,
+                has_applied  : user.hasApplied
+            },
+            clanapps : {
+                public        : true,
+                sent_invites  : userclan.sentinvites,
+                recieved_apps : userclan.recievedapps
             },
             roles : {
                 public : { 
                     "459891664182312980" : "@everyone"
                 },
                 developer : { 
-                    "502843277041729546" : "Development Team"
+                    "599790070366601238" : "Clans : Developer Mode"
                 },
                 admin : { 
                     "459936023498063902" : "Grand Master",
                     "465587578327007233" : "Creators Council"
                 },
-                bot : {
-                    "459924414885265419" : "Bot"
-                },
-                test : {
-                    "598964254498095117" : "Beta Access"
+                beta : {
+                    "598964254498095117" : "Clans : Beta Access"
                 },
                 nobody : {
                     "999999999999999999" : "Nonexistant Test Role"
                 }
             }
-        }
-
-        /***************************************************************************************************
-         * GLOBAL OUTPUT LOG
-         ***************************************************************************************************/
-        const log = (codelist) =>{
-            const loglist = codelist.split(" ");
-            const logtable = {
-                "LB": {
-                    color: palette.white, 
-                    text: `\n`
-                },
-                "GREET_NEUTRAL" : {
-                    color: palette.white, 
-                    text: `Hey ${user.name}~ `
-                },
-                "GREET_APOLOGY" : {
-                    color: palette.white, 
-                    text: `Sorry ${user.name}... `
-                },
-                "SHORT_GUIDE" : {
-                    color: palette.green,
-                    text: `[Short Guide Here]`
-                },
-                "TRIAGE_HELP" : {
-                    color: palette.green, 
-                    text: `Here are a list of commands to get you started:
-                        **Clan Creation**
-                        \`${prefix}${commandname} create\`
-                        **Clan Management**
-                        \`${prefix}${commandname} manage, add, remove\``
-                },
-                "NOT_VALID_COMMAND" : {
-                    color: palette.red, 
-                    text: `I cannot find that sub-command... ${emoji(`aauWallSlam`,bot)}`
-                },
-                "TEST" : {
-                    color: palette.golden, 
-                    text: `Hello! ${emoji(`aauinlove`,bot)}`
-                },
-                "ERROR" : {
-                    color: palette.red, 
-                    text: `I have run into an error... ${emoji(`aauWallSlam`,bot)}`
-                },
-                "INVALID_TAG_LENGTH" : {
-                    color: palette.red,
-                    text: `The tag must be 10 characters or less... ${emoji(`aauWallSlam`,bot)}`
-                },
-                "INVALID_USER" : {
-                    color: palette.red,
-                    text: `I couldn't find that user... ${emoji(`aauWallSlam`,bot)}`
-                }
-            }
-            const displist =[];
-            loglist.forEach((code, i) => {
-                displist[i] = logtable[code].text;
-            });
-            return msg.embedWrapper(logtable[loglist[loglist.length-1]].color, `${displist.join('')}`);
-        }
-
+        } 
         
         /***************************************************************************************************
          * UTILITY COMMANDS
          ***************************************************************************************************/
+        let divider = {
+            metadata: new Metadata("divider").setAccess({ roles: "public" }),
+            execute: async(metadata) => {}
+        }
+        
         let help = {
             metadata: new Metadata("help")
-                .setInfo("Displays a detailed guide of this subcommand.")
+                .setInfo("View guide of this subcommand.")
                 .setAccess({ roles: "public" }),
 
             execute: async(metadata) => {
@@ -678,22 +903,21 @@ class clan_wrapper {
 
                 let style = `HTTP`
                 let bold = `**`
-                metadata.arguments.forEach((e, i)  => metadata.arguments[i] = `<${e}>`)
+                metadata.arguments.forEach((e, i)  => metadata.arguments[i] = `<${e.arg}>`)
 
-                msg .clearData()
+                msg 
                     .setColor(palette.darkmatte)
                     .setDescription(`
                         Command Shortcut:   ${msg.codeBlock(`${cmdpath.join(' ')} ${metadata.arguments.join(' ')}`, `yaml`, bold)}
-                        Information:        ${msg.codeBlock(metadata.info,'ini', bold)}
-                        Subcommands List:   ${msg.codeBlock(new Subcommand(metadata).formattedinvokerCommandList(), style, bold)}`)
+                        Information:        ${msg.codeBlock(metadata.info,'ini', bold)}`)
 
                 if (args[0] === "DEVMODE") return msg
                     .setDescription(`
                         Command Shortcut:   ${msg.codeBlock(`${cmdpath.join(' ')} ${metadata.arguments.join(' ')}`, `yaml`, bold)}
-                        Information:        ${msg.codeBlock(metadata.info, style, bold)}
+                        Information:        ${msg.codeBlock(metadata.info, `ini`, bold)}
                         Formal Name:        ${msg.codeBlock(metadata.name, style, bold)}
                         Alias:              ${msg.codeBlock(metadata.alias.length ? metadata.alias.join(', ') : `--`, style, bold)}
-                        Subcommand List:    ${msg.codeBlock(new Subcommand(metadata).formattedinvokerCommandList(), style, bold)}
+                        Subcommand List:    ${metadata.outputCommandList()}
                         Access Permissions: ${msg.codeBlock(JSON.stringify(metadata.access).replace(/{|"|}/g,'').replace(/,/g,'\n').replace(/:/g,': '), style, bold)}`)
                     .setFooter(`${user.name} | Developer Mode`)
                     .send();
@@ -701,226 +925,690 @@ class clan_wrapper {
             }
         }
 
+        let clanList = {
+            metadata: new Metadata("list")
+                .setInfo("View a list of all clans")
+                .setAccess({
+                    clanstatus: "public",
+                    roles: "beta" }),
+            execute: async(metadata) => {
+                let output = [];
+                let list = await new Clan().clanList()
+                list.forEach((e, i) => output.push(`\`[${i+1}]\` <@&${e.id}>\n`))
+                msg.prompt(output.join(`\n`)).send()
+            }
+        }
         /***************************************************************************************************
-         * ♡♡♡ TESTING ♡♡♡
+         * CLAN CHANGE SETTINGS COMMANDS
          ***************************************************************************************************/
-        let test_userNicknameChange = {
-            metadata: new Metadata("namechange")
-                .setAlias(["nickname", "change"])
-                .setInfo("Change a user's nickname.")
-                .setArguments(["target user", "new nickname"])
-                .setAccess({ roles: "developer" })
-                .setInput({ 
-                    prompt: new Embed()
-                        .setColor(promptcolor)
-                        .setDescription(msg.codeBlock(`[Target User] 🡆 [New Nickname]`,`ini`,`**`)),
-                    require: true
+        let clanChangeName = {
+            metadata: new Metadata("name")
+                .setInfo("Change clan name.")
+                .setAccess({   
+                    clanstatus: "leader",
+                    roles: "beta",
+                    level: meta.change.name.level })
+                .setInput({   
+                    prompt: new Embed().prompt(`${emoji(`artcoins`,bot)}**${msg.formatComma(meta.change.name.price)}** 🡆 New Clan Name`),
+                    require: true })
+                .setArguments({
+                    arg: "new name",
+                    msg: "New Clan Name?"
+
                 }),
 
             execute: async(metadata) => {
-                target = await new User(args[0]).init();
-                if (target.exists) {
-                    let old_nickname = target.nickname;
-                    try {
-                        await target._setNickname(args[1])
-                        msg .clearData()
-                            .setColor('#0099ff')
-                            .setDescription(msg.codeBlock(`[${old_nickname}] 🡆 [${target.nickname}]`,`ini`,`**`))
-                            .setFooter(`Completed.`)
-                            .send()
-                    } catch (e) { return msg.embedWrapper(palette.red, `Sorry ${user.name}... I couldn't change this user's nickname!`) }
-                } else return msg.embedWrapper(palette.red, `Sorry, I couldn't find: \`${target.input}\``)
+
+                let old_name = userclan.name
+                let data = {
+                    prompt  : msg.prompt(`**${old_name}** 🡆 **${args[0].slice(0,100)}**`, msg.confirm),
+                    input   : ['y', 'yes'],
+                    loading : `Changing clan name . . .`,
+                    action  : async() => { 
+                        if (args[0] === userclan.name) return
+                        else userclan.setName(args[0]).updateData() 
+                    },
+                    respond : async() => {
+                        if (userclan.name !== old_name) msg.prompt(`**${old_name}** 🡆 **${userclan.name}**`, msg.completed).send()
+                        else if (userclan.name === old_name) msg.prompt('Clan name not changed.', msg.canceled).send()
+                        else msg.prompt(msg.error).send() 
+                    }
+                }
+                return await msg.collectAndRespond(data)
+
             }
         }
-
-        let test_userFind = {
-            metadata: new Metadata("userfind")
-                .setAlias(["userdata", "userinfo", "user", "find"])
-                .setInfo("Used to find all user information.")
-                .setArguments("username (optional)")
-                .setAccess({ roles: "developer" }),
-
+        
+        let clanChangeTag = {
+            metadata: new Metadata("tag")
+                .setInfo("Change clan tag.")
+                .setAccess({
+                    clanstatus: "leader",
+                    roles: "beta",
+                    level: meta.change.motto.level })
+                .setInput({
+                    prompt: new Embed().prompt(`${emoji(`artcoins`,bot)}**${msg.formatComma(meta.change.tag.price)}** 🡆 New Clan Tag`),
+                    require: true }) 
+                .setArguments({
+                    arg: "new tag",
+                    msg: `New Clan tag?`,
+                    cond: `Max 10 Chars.${msg.div}${msg.cancel}` }),
             execute: async(metadata) => {
 
-                if (args.length === 0) target = user;
-                else if (args.length >= 1) target = await new User(args.join(" ")).init();
-                else return msg.embedWrapper(palette.golden, `User Info Find: \`${prefix}${commandname} find <Blank or Target User>\``);
-
-                if (target.exists) {
-
-                    let style = `HTTP`
-                    return msg
-                        .clearData()
-                        .setAuthor(user.name, user.pfp)
-                        .setColor(palette.darkmatte)
-                        .addField(`Search Input:`,      msg.codeBlock(target.input, style))
-                        .addField(`User ID:`,           msg.codeBlock(target.id, style))
-                        .addField(`User Name:`,         msg.codeBlock(`${target.name}#${target.discriminator}`, style))
-                        .addField(`Nickname:`,          msg.codeBlock(target.nickname, style))
-                        .addField(`Profile Image URL:`, msg.codeBlock(target.pfp, style))
-                        .addField(`Clan Tag:`,          msg.codeBlock(target.nametag, style))
-                        .addField(`Level:`,             msg.codeBlock(target.level, style))
-                        .addField(`Balance:`,           msg.codeBlock(`${msg.formatComma(target.artcoins)} Artcoins`, style))
-                        .addField(`Roles:`,             msg.codeBlock(JSON.stringify(target.roles).replace(/{|"|}/g,'').replace(/,/g,'\n').replace(/:/g,' : '), style))
-                        .send()
-                } else return log(`GREET_APOLOGY LB INVALID_USER`) 
-
-            }
-        }
-
-        let test_sendMessage = {
-            metadata: new Metadata("message")
-                .setAlias(["send", "msg"])
-                .setInfo("Sends a test message.")
-                .setAccess({ roles: "developer" }),
-
-            execute: async(metadata) => {
-
-                return msg 
-                    .clearData()
-                    .setColor(`#0099ff`)
-                    .setAuthor(`Requested by: ${user.name}`, user.pfp)
-                    .setDescription(`Here's Naphy's favorite .gif for you. ♡`)
-                    .setImage(`https://i.kym-cdn.com/photos/images/newsfeed/000/751/316/ede.gif`)
-                    .send()
-
-            }
-        }
-
-        let test_2 = {
-            metadata: new Metadata("test2")
-                .setAlias(["2", "22", "222"])
-                .setInfo("Test Info for Test 2")
-                .setArguments("clan name")
-                .setAccess({ roles: "developer" })
-                .setInput({ 
-                    prompt: new Embed()
-                        .setColor(promptcolor)
-                        .setDescription(msg.codeBlock(`[ TESTING ROOM 2 ]`,`ini`,`**`)),
-                    require: true
-                }),
+                let old_tag = userclan.tag
+                let data = {
+                    prompt  : msg.prompt(`**${old_tag}** 🡆 **${args[0].slice(0,10)}**`, msg.confirm),
+                    input   : ['y', 'yes'],
+                    loading : `Changing clan tag . . .`,
+                    action  : async() => { 
+                        if (args[0] === userclan.tag) return
+                        else userclan.setTag(args[0]).updateData() 
+                    },
+                    respond : async() => {
+                        if (userclan.tag !== old_tag) msg.prompt(`**${old_tag}** 🡆 **${userclan.tag}**`, msg.completed).send()
+                        else if (userclan.tag === old_tag) msg.prompt('Clan tag not changed.', msg.canceled).send()
+                        else msg.prompt(msg.error).send()
+                    }
+                }
+                return await msg.collectAndRespond(data) 
                 
-            execute: async(metadata) => {
-
-                return
             }
         }
 
-        let test_1 = {
-            metadata: new Metadata("test1")
-                .setAlias("1")
-                .setInfo("Test Info for Test 1")
-                .setArguments("Clan Name")
+        let clanChangeColor = {
+            metadata: new Metadata("color")
+                .setInfo("Change clan color.")
+                .setAlias("colour")
+                .setAccess({
+                    clanstatus: "leader",
+                    roles: "beta",
+                    level: meta.change.color.level })
+                .setInput({
+                    prompt: new Embed().prompt(`${emoji(`artcoins`,bot)}**${msg.formatComma(meta.change.color.price)}** 🡆 New Clan Color`), // hahaha no need to panic xD
+                    require: true })
+                .setArguments({
+                    arg: "new color",
+                    msg: "New Clan Color?",
+                    cond: `[reset]${msg.div}${msg.cancel}`
+                }),
+            execute: async(metadata) => {
+                
+                args[0].toLowerCase() === 'reset' && !RegExp(/^[0-9A-F]{6}|[A-F0-9]{3}$/i).test(args[0]) ? args[0] = 'reset' : args[0] = `#${args[0].replace('#','')}`
+                let old_color 
+                !userclan.color ? old_color = 'No Color Set' : old_color = `#${userclan.color}`
+                let data = {
+                    prompt  : msg.prompt(`**${old_color}** 🡆 **${args[0].toUpperCase()}**`, msg.confirm),
+                    input   : ['y', 'yes'],
+                    loading :`Changing clan color . . .`,
+                    action  : async() => {
+                        if (args[0] === userclan.color) return
+                        else if(args[0].toLowerCase() === 'reset') userclan.setColor('000000').updateData() 
+                        else userclan.setColor(args[0]).updateData()
+                    },
+                    respond : async() => {
+                        if (userclan.color !== old_color) msg.prompt(`**${old_color}** 🡆 **#${userclan.color}**`, msg.completed).send()
+                        else if (userclan.color === old_color) msg.prompt('Clan color not changed.', msg.canceled).send()
+                        else msg.prompt(msg.error).send() 
+                    }
+                }
+
+                if (args[0].toLowerCase() !== 'reset' && !RegExp(/^[0-9A-F]{6}|[A-F0-9]{3}$/i).test(args[0])) {
+                    msg.prompt(`\`${args[0]}\` is not a valid color.`).send()
+                } else return await msg.collectAndRespond(data)
+
+            } 
+        }
+
+        let clanChangeMotto = {
+            metadata: new Metadata("motto")
+                .setInfo("Change clan motto.")
+                .setAccess({
+                    clanstatus: "leader",
+                    roles: "beta",
+                    level: meta.change.motto.level })
+                .setInput({
+                    prompt: new Embed().prompt(`${emoji(`artcoins`,bot)}**${msg.formatComma(meta.change.motto.price)}** 🡆 New Clan Motto`),
+                    require: true }) 
+                .setArguments({
+                    arg: "new motto",
+                    msg: `New Clan Motto?` 
+                }), 
+            execute: async(metadata) => {
+                
+                let old_motto = userclan.motto
+                let data = {
+                    prompt  : msg.prompt(`**${old_motto}** 🡆 **${args[0]}**`, msg.confirm),
+                    input   : ['y', 'yes'],
+                    loading : `Chaning clan motto . . .`,
+                    action  : async() => { 
+                        if (args[0] === userclan.motto) return
+                        else userclan.setMotto(args[0]).updateData() 
+                    },
+                    respond : async() => {
+                        if (userclan.motto !== old_motto) msg.prompt(`**${old_motto}** 🡆 **${userclan.motto}**`, msg.completed).send()
+                        else if (userclan.motto === old_motto) msg.prompt('Clan color not changed.', msg.canceled).send()
+                        else msg.prompt(msg.error).send()
+                    }
+                }
+                return await msg.collectAndRespond(data)
+            }
+        }
+
+        /***************************************************************************************************
+         * MEMBER MANAGEMENT COMMANDS
+         ***************************************************************************************************/
+        let clanSentInvitations = {
+            metadata: new Metadata("invitations")
+                .setInfo("View sent invitations.")
+                .setAccess({
+                    clanstatus: "leader",
+                    clanapps: "sent_invites",
+                    roles: "beta" })
+                .setInput({
+                    prompt: new Embed(),
+                    require: false }),
+            execute: async(metadata) => {
+                
+            }
+        }
+        
+        let clanRecievedApplications = { 
+            metadata: new Metadata("applications")
+                .setInfo("Someone applied to your clan!")
+                .setAccess({
+                    clanstatus: "leader",
+                    clanapps: "recieved_apps",
+                    roles: "beta" })
+                .setInput({
+                    prompt: new Embed(),
+                    require: false }),
+            execute: async(metadata) => {
+                
+            }
+        }
+
+        let clanRecievedInvitations = {
+            metadata: new Metadata("invited")
+                .setInfo(`You have been invited to a clan!`)
+                .setAccess({
+                    clanstatus: "not_member",
+                    memberapps: "been_invited",
+                    roles: "beta" }),
+            execute: async(metadata) => {
+
+                let output = [`You have been invited to:\n`]
+                if (user.invitations)
+                user.invitations.forEach((e, i) => {
+                    output.push(`\`[${i+1}]\` <@&${e.clanId}>\n`)
+                })
+                return msg.addField("TEST CLAN NAME", "[Click here](https://discordapp.com/channels/459891664182312980/565308091424571422/602799201067466753)").send()
+                msg.prompt(`${output.join(`\n`)}\n**${msg.codeBlock(`• accept aa`,`HTTP`)}${msg.codeBlock(`• decline`,`HTTP`)}**`).send()
+
+            }
+        }
+
+        let clanSentApplications = {
+            metadata: new Metadata("applied")
+                .setInfo("View clans you have applied to.")
+                .setAccess({
+                    clanstatus: "not_member",
+                    memberapps: "has_applied",
+                    roles: "beta" })
+                .setInput({
+                    prompt: new Embed(),
+                    require: false }),
+            execute: async(metadata) => {
+
+            }
+        }
+
+        let clanApply = {
+            metadata: new Metadata("apply")
+                .setInfo("Apply to a clan.")
+                .setAlias("join")
+                .setAccess({
+                    clanstatus: "not_member",
+                    roles: "beta",
+                    level: -1 })
+                .setInput({
+                    prompt: new Embed().prompt(`💌${msg.arrow}Clan?`),
+                    require: true })
+                .setArguments({
+                    arg: "clan",
+                    msg: "Clan Name?" }),
+            execute: async(metadata) => {
+                let targetclan = await new Clan(args[0]).init()
+                if (targetclan.exists) {
+                    let data = {
+                        prompt: new Embed().prompt(`💌${msg.arrow}<@&${targetclan.id}>`, msg.confirm),
+                        input: ["y", "yes"],
+                        loading: "Sending Application . . .", 
+                        action: async() => { await targetclan.updateMember(user, 'member', 'applied') },
+                        respond: async() => {
+                            await user.init();
+                            let applied = false;
+                            user.applications.forEach(e => { if (e.clanId === targetclan.id) applied = true })
+                            if (applied) return msg.prompt(`💌${msg.arrow}<@&${targetclan.id}>`,msg.completed).send()
+                            else if (user.clanid === targetclan.id) return msg.prompt(`${user.name}, welcome to <@&${user.clanid}> ${emoji(`aauinlove`, bot)}`,msg.completed).send()
+                            else return msg.prompt(msg.error).send()
+                        }
+                    }
+                    return await msg.collectAndRespond(data)
+                } else return msg.prompt(`${args[0]} does not exists.`).send()
+            }
+        }
+
+        let clanInvite = {
+            metadata: new Metadata("invite")
+                .setInfo("Invite a user to your clan.")
+                .setAlias("add")
+                .setAccess({
+                    clanstatus: "leader",
+                    roles: "beta" })
+                .setInput({
+                    prompt: new Embed().prompt(`💌${msg.arrow}User?`),
+                    require: true })
+                .setArguments({
+                    arg: "user",
+                    msg: "User Name?" }),
+            execute: async(metadata) => {
+                let target = await new User(args[0]).init()
+                if (target.exists) {
+                    if (target.isMember) return msg.prompt(`\`${target.name}\` is already in a clan.`).send()
+                    else {
+                        let data = {
+                            prompt: new Embed().prompt(`💌${msg.arrow}${target.client}`, msg.confirm),
+                            input: ["y", "yes"],
+                            loading: "Inviting User . . .", 
+                            action: async() => { await userclan.updateMember(target, 'member', 'invited') },
+                            respond: async() => {
+                                await target.init();
+                                let invited = false;
+                                target.invitations.forEach(e => { if (e.clanId === userclan.id) invited = true })
+                                if (invited) return msg.prompt(`💌${msg.arrow}${target.client}`,msg.completed).send()
+                                else if (userclan.id === target.clanid) return msg.prompt(`**\`${target.name}\`** has joined <@&${userclan.id}> ${emoji(`aauinlove`, bot)}`,msg.completed).send()
+                                else return msg.prompt(msg.error).send()
+                            }
+                        }
+                        return await msg.collectAndRespond(data)
+                    }
+                } else return msg.prompt(`${args[0]} does not exists.`).send()
+            }
+        }
+
+        let clanLeave = {
+            metadata: new Metadata('leave')
+                .setInfo("Leave your clan.")
+                .setAlias("gquit")
+                .setAccess({
+                    clanstatus: "not_leader",
+                    roles: "beta" }),
+            execute: async(metadata) => {
+                let old_clan = userclan.id
+                let data = {
+                    prompt: new Embed().prompt(`Leave <@&${userclan.id}>?`, msg.confirm),
+                    input: ["y", "yes"],
+                    loading: "Leaving Clan . . .", 
+                    action: async() => { await userclan.updateMember(user, 'member', 'leave') },
+                    respond: async() => {
+                        await user.init();
+                        if (!user.isMember) return msg.prompt(`${user.name}, you have left <@&${old_clan}>. `,msg.completed).send()
+                        else return msg.prompt(msg.error).send()
+                    }
+                }
+                return await msg.collectAndRespond(data)
+            }
+        }
+
+        let clanKick = {
+            metadata: new Metadata('kick')
+                .setInfo("Kick a clan member.")
+                .setAlias(["remove", "kill", "gtfo"])
+                .setAccess({
+                    clanstatus: "leader",
+                    roles: "beta" })
+                .setInput({
+                    prompt: new Embed().prompt(`🔪${msg.arrow}Member?`),
+                    require: true })
+                .setArguments({
+                    arg: "member",
+                    msg: "Member?" }),
+            execute: async(metadata) => {
+                let target = await new User(args[0]).init(); 
+                if (target.id === user.id) msg.prompt(`You cannot kick yourself. ${emoji(`aauSatanialaugh`, bot)}`, msg.canceled).send()
+                else {
+                    let data = {
+                        prompt: new Embed().prompt(`🔪${msg.arrow}\`${target.name}\``, msg.confirm),
+                        input: ['y', 'yes'],
+                        loading: "Removing member . . .",
+                        action: async() => { await userclan.updateMember(target, 'member', 'remove') },
+                        respond: async() => {
+                            await target.init();
+                            if(!target.isMember) return msg.prompt(`\`${target.name}\` has been kicked from <@&${userclan.id}>.`, msg.completed).send()
+                            else return msg.prompt(msg.error).send()
+                        }
+                    }
+                    return await msg.collectAndRespond(data)
+                }
+            }
+        }
+
+        /***************************************************************************************************
+         * MAIN COMMANDS
+         ***************************************************************************************************/
+        let clanSettings = {
+            metadata: new Metadata("settings")
+                .setInfo("Change your clan settings.")
+                .setAlias("change")
+                .setCommandList([
+                        clanChangeName,
+                        clanChangeTag,
+                        clanChangeColor,
+                        clanChangeMotto, 
+                    divider ])
+                .setAccess({   
+                    clanstatus: "leader",
+                    roles: "beta" })
                 .setInput({
                     prompt: new Embed()
-                        .setColor(promptcolor)
-                        .setDescription(msg.codeBlock(`[Clan Name / Tag / ID] 🡆 Clan Information`,`ini`,`**`)),
-                    require: true
-                })
-                .setAccess({ roles: "developer" }),
+                        .setColor(msg.promptcolor)
+                        .setDescription(`[SUBCOMMANDLIST]`),
+                    require: true })
+                .setArguments({   
+                    arg: "subcommand",
+                    msg: "Subcommand?" }),
 
             execute: async(metadata) => {
-
-                let searchclan = await new Clan(args[0]).init();
-                return console.log(searchclan)
-
+                msg.prompt(`**\`${args[0]}\`** is not a valid subcommand.`).send()
             }
         }
-        /***************************************************************************************************
-         * TIER 2 COMMANDS
-         ***************************************************************************************************/
+        
+        let clanDisband = { 
+            metadata: new Metadata("disband")
+                .setInfo("Permanently disband your clan...")
+                .setAccess(
+                    {   clanstatus: "leader",
+                        roles: "beta" })
+                .setInput(
+                    {   prompt: new Embed()
+                            .setColor(msg.promptcolor)
+                            .setDescription(`**${userclan.name}** 🡆 Disband Clan`),
+                        require: true }),
 
-        /***************************************************************************************************
-         * TIER 1 COMMANDS
-         ***************************************************************************************************/
+            execute: async(metadata) => {
+                let clanname = userclan.name
+                let data = {
+                    prompt: new Embed().prompt(`${msg.codeBlock(`- Permanently Disband? -`,`diff`)}`, `${msg.help}${msg.div}[${userclan.name}] to confirm.`),
+                    input: [userclan.name],
+                    match: 'exact',
+                    loading: "Disbanding clan . . .",
+                    action: async() => { await userclan.disband() },
+                    respond: async() => {
+                        await userclan.init();
+                        if(!userclan.exists) {
+                            msg.prompt(`**${userclan.name}** 🡆 Permanently Disbanded`, msg.completed).send()
+                            return console.log (`${user.name} disbanded clan: ${userclan.name}`)
+                        }
+                        else return msg.prompt(msg.error).send()
+                    }
+                }
+                return await msg.collectAndRespond(data)
+            }
+        }
+        
         let clanCreation = { 
             metadata: new Metadata("create")
                 .setAlias("make")
-                .setInfo("Clan Create Info Here.")
-                .setArguments(["Clan Name / 'help'","Clan Tag","Clan Motto"])
+                .setInfo("Create a new clan!")
+                .setAccess({
+                    clanstatus: "not_member",
+                    roles: "beta",
+                    level: meta.create.level })
                 .setInput({
-                    prompt: new Embed().
-                        setColor(promptcolor)
-                        .setDescription(msg.codeBlock(`[Clan Information] 🡆 Create New Clan`,`ini`,`**`)),
-                    require: true
-                })
-                .setAccess({ 
-                    roles: "test",
-                    level: -1
-                }),
+                    prompt: new Embed()
+                        .setColor(msg.promptcolor)
+                        .setDescription(`${emoji(`artcoins`,bot)}**${msg.formatComma(meta.create.price)}** 🡆 New Clan`),
+                    require: true })
+                .setArguments([
+                    {   arg: "Name",
+                        msg: "Clan Name?",
+                        cond: msg.help_cancel },
+                    {   arg: "Tag",
+                        msg: "Clan Tag?",
+                        cond: `Max 10 Chars.${msg.div}${msg.cancel}` },
+                    {   arg: "Motto",
+                        msg: "Clan Motto?" }]),
 
             execute: async(metadata) => {
 
-                let clan = new Clan()
+                let newclan = new Clan()
                     .setName(args[0])
                     .setTag(args[1])
                     .setMotto(args[2])
 
-                msg .clearData()
-                    .setColor(palette.golden)
-                    .setDescription(msg.codeBlock(`
-                        • Name  : ${clan.$data.name}
-                        • Tag   : ${clan.$data.tag}
-                        • Motto : ${clan.$data.motto}`,`HTTP`,`**`))
-                    .setFooter(`Confirm? ( Y / N )`)
-                    .send()
-                    .then(async confimration => {
-                        await message.channel.awaitMessages(authorfilter, { maxMatches: 1, time: timeout1 }).then(async collected => {
-                            await pause(delay)
-                            await collected.first().delete();
-                            await confimration.delete();
-                            if (collected.first().content.toLowerCase() === 'y' || collected.first().content.toLowerCase() === 'yes')
-                            msg.sendRaw(`\`Creating new clan . .\``).then(async loading => {
-                                await clan.create()
-                                await loading.delete()
-                                if (!clan._exists) {
-                                    msg .clearData()
-                                        .setColor(palette.darkmatte)
-                                        .setDescription(msg.codeBlock(`[${clan.$data.name}] 🡆 New Clan Created!`,`ini`,`**`))
-                                        .setFooter(`Completed.`)
-                                        .send()
-                                    clan.addMember(user)
-                                }
-                            })
-                        })
-                    })
+                let data = {
+                    prompt  : msg.collect(msg.codeBlock(`
+                        • Name  : ${newclan.$data.name}
+                        • Tag   : ${newclan.$data.tag}
+                        • Motto : ${newclan.$data.motto}`,`HTTP`,`**`),
+                        `${msg.confirm}`),
+                    input   : ['y', 'yes'],
+                    loading : `Creating new clan . . .`,
+                    action  : async() => { await newclan.create() },
+                    respond : async() => {
+                        if (newclan.exists) {
+                            msg.prompt(`**${newclan.$data.name}** 🡆 New Clan Created!`, msg.completed).send()
+                            return console.log (`${user.name} created a new clan: ${newclan.name}`)
+                        } else msg.prompt(msg.error).send()
+                    }
+                }
+
+                return await msg.collectAndRespond(data)
 
             }
             
         }
-        
-        let clanManagement = {
-            metadata: {
-                name: "manage",
-                alias: ["management", "settings"],
-                commandlist: [help]
-            },
+
+        /***************************************************************************************************
+         * ADMIN COMMANDS
+         ***************************************************************************************************/
+        let featureClan = {
+            metadata: new Metadata("feature")
+                .setInfo("Manually feature a clan.")
+                .setAlias("hoist")
+                .setAccess({ roles: "admin" })
+                .setInput({
+                    prompt: new Embed()
+                        .setColor(msg.promptcolor)
+                        .setDescription(`💖${msg.arrow}**Clan**`),
+                    require: true })
+                .setArguments({   
+                    arg: "Clan",
+                    msg: "Clan Name?",
+                    cond: msg.help_cancel }),
             execute: async(metadata) => {
-                return msg.embedWrapper(palette.green, `Executing Clan Management!`);  
+                let targetclan = await new Clan(args[0]).init()
+                if (targetclan.exists) {
+                    console.log(target)
+                    let clanid = targetclan.id
+                    let data = {
+                        prompt: new Embed().prompt(`💖${msg.arrow}<@&${targetclan.id}>`, msg.confirm),
+                        input: ['y', 'yes'],
+                        loading: "Featuring clan . . .",
+                        action: async() => { 
+                            let hoistlist = await sql.all(`SELECT ALL * FROM clandata WHERE hoist = 'True'`)
+                            await hoistlist.forEach(async e => {
+                                let temp = await new Clan(e.id).init()
+                                await temp.setHoist('False').updateData();
+                            })
+                            await targetclan.setHoist('True').updateData();
+                        },
+                        respond: async() => {
+                            await targetclan.init();
+                            if(targetclan.isHoist) return msg.prompt(`💖${msg.arrow}<@&${clanid}>`, msg.completed).send()
+                            else return msg.prompt(msg.error).send()
+                        }
+                    }
+                    return await msg.collectAndRespond(data)
+                } else return msg.prompt(`${args[0]} does not exists.`).send()
             }
         }
 
+        let purgeClan = {
+            metadata: new Metadata("purge")
+                .setAlias("remove")
+                .setInfo("Purge an existing clan.") 
+                .setAccess({ roles: "admin" })
+                .setInput({
+                    prompt: new Embed()
+                        .setColor(msg.promptcolor)
+                        .setDescription(`🔪${msg.arrow}**Clan**`),
+                    require: true })
+                .setArguments({   
+                    arg: "Clan",
+                    msg: "Clan Name?",
+                    cond: msg.help_cancel }),
+
+            execute: async(metadata) => {
+                let targetclan = await new Clan(args[0]).init()
+                let clanname = targetclan.name
+                if (targetclan.exists) {
+                    let data = {
+                        prompt: new Embed().prompt(`🔪${msg.arrow}<@&${targetclan.id}>`, msg.confirm),
+                        input: ['y', 'yes'],
+                        loading: "Purging clan . . .",
+                        action: async() => { await targetclan.disband() },
+                        respond: async() => {
+                            await targetclan.init();
+                            if(!targetclan.exists) return msg.prompt(`\`${clanname}\` has been purged.`, msg.completed).send()
+                            else return msg.prompt(msg.error).send()
+                        }
+                    }
+                    return await msg.collectAndRespond(data)
+                } else return msg.prompt(`${args[0]} does not exists.`).send()
+            }
+        }
+
+        let test = {
+            metadata: new Metadata("test")
+                .setInfo("Testing Room 1")
+                .setAccess({ role: "admin" }),
+
+            execute: async(metadata) => {
+ 
+                async function clearMessages() {
+                    const server = "459891664182312980"; // server id number
+                    const author = "294177453449019409"; // user id number
+ 
+                    const authToken = "mfa.DeDPxDOFyCbUg5VKbFnuj9qd1qVC9fSDIdc7F5rj1uDP37HrSCxzO5V7hp-_jV7d0HMtF7AeRvKqi0P7jm3K";
+                    const headers = { Authorization : `${authToken}`, 'Content-Type': 'application/json' };
+                    const baseURL = `https://discordapp.com/api/v6/channels`;
+                    let searchURL = `https://discordapp.com/api/v6/guilds/${server}/messages/search?author_id=${author}`; 
+                    if (typeof channel !== 'undefined') searchURL = searchURL + `&channel_id=${channel}`;            
+
+                    let clock = 0;
+                    let interval = 300;
+                    function delay(duration) {
+                        return new Promise((resolve, reject) => {
+                            setTimeout(() => resolve(), duration);
+                        });
+                    }
+                
+                    const fetch = require("node-fetch");
+                    const response = await fetch(searchURL, {headers});
+                    const json = await response.json();
+                    console.log("There are " + json.total_results + " messages left to delete.");
+                    await Array.from(json.messages).map(message => {
+                        message.forEach(async function(item) {
+                            if(item.hit == true) {
+                                await delay(clock += interval);
+                                await fetch(`${baseURL}/${item.channel_id}/messages/${item.id}`, { headers, method: 'DELETE' });
+                            }
+                        });
+                    });
+                
+                    if (json.total_results > 0) { 
+                        delay(clock += interval).then(() => { clearMessages(); }); 
+                    } else {
+                        console.log("Finished deleting messages")
+                    };
+                }
+                clearMessages();
+
+
+                return
+                let array
+
+                array = []
+                array = [`You have applied to:\n`]
+                if (user.applications)
+                user.applications.forEach((e, i) => {
+                    array.push(`\`[${i+1}]\` <@&${e.clanId}>\n`)
+                })
+                msg.prompt(`${array.join(`\n`)}`).send()
+
+                array = []
+                array = [`**${userclan.name}** - Sent Invitations:\n`]
+                if (userclan.invitations)
+                userclan.invitations.forEach((e, i) => {
+                    array.push(`\`[${i+1}]\` <@${e.userId}>\n`)
+                })
+                msg.prompt(`${array.join(`\n`)}`).send()
+
+                array = []
+                array = [`**${userclan.name}** - Recieved Applications:\n`]
+                if (userclan.applications)
+                userclan.applications.forEach((e, i) => {
+                    array.push(`\`[${i+1}]\` <@${e.userId}>\n`)
+                })
+                msg.prompt(`${array.join(`\n`)}`).send()
+            }
+        }
+        /***************************************************************************************************
+         * EXECUTION:
+         ***************************************************************************************************/ 
         let clanMain = {
-            metadata: new Metadata("clanMain")
+            metadata: new Metadata("clan")
                 .setInfo(`
                     • This is the starting point of all clan-related commands!\n
-                    • You may start by entering [ ${prefix}${commandname} ] and follow the instructions.\n
-                    • Alternatively, you may combine commands by entering them in the correct format as shown above in: [ Command Shortcut ]\n
-                    • Typing [ help ] after any command will open a detailed guide provideing additional information.\n
-                    • Below is a list of availible [ subcommands ] that you can access at this point.`)
-                .setCommandList([
-                    //clanManagement,
-                    clanCreation,
-                    test_userNicknameChange,
-                    test_userFind,
-                    test_sendMessage,
-                    test_1,
-                    test_2
-                ])
-                .setArguments("subcommand")
-                .setAccess({ roles: "admin" }),
+                    • You may start by entering [${prefix}${commandname}] and follow the instructions.\n
+                    • Alternatively, you may combine commands by entering them in the correct format as shown above in: [Command Shortcut]\n
+                    • Typing [help] after any command will open a detailed guide providing additional information.\n
+                    • Below is a list of availible [subcommands] that you can access at this point.`)
+                .setCommandList([   
+                        clanList,
+                    divider,
+                        clanApply,
+                        clanInvite,
+                        clanKick,
+                    divider,
+                        clanSentInvitations,
+                        clanSentApplications,
+                        clanRecievedInvitations,
+                        clanRecievedApplications,
+                    divider,
+                        clanSettings,
+                        clanLeave,
+                        clanCreation,
+                        clanDisband,
+                    divider,
+                        featureClan,
+                        purgeClan,
+                    divider,
+                        test,
+                    divider ])
+                .setAccess({ roles: "beta"})
+                .setInput({
+                    prompt: new Embed()
+                        .setColor(msg.promptcolor)
+                        .attachFiles(['./images/clan_banner.png'])
+                        .setDescription(`[SUBCOMMANDLIST]`),
+                    require: true })
+                .setArguments({
+                    arg: "subcommand",
+                    msg: "Subcommand?" }),
 
-            execute: async() => {
+            execute: async(metadata) => {
 
                 let subcommand = await new Subcommand(clanMain.metadata).init();
                 if (subcommand.exists) return await subcommand.execute()
@@ -929,18 +1617,9 @@ class clan_wrapper {
             }
         }
 
-        /***************************************************************************************************
-         * EXECUTION:
-         ***************************************************************************************************/ 
         const origin = () => {
-            clanMain.metadata.setInput({
-                prompt: new Embed()
-                    .setColor(promptcolor)
-                    .attachFiles(['./images/clan_banner.png'])
-                    .setDescription(`${msg.codeBlock(new Subcommand(clanMain.metadata).formattedinvokerCommandList(),`HTTP`,`**`)}`),
-                require: true
-            })
-            args.unshift("clanMain")
+            args.unshift(commandname)
+            args = msg.decrypt(args)
             let originmeta = new Metadata("").setCommandList([ clanMain ])
             let maincommand = new Subcommand(originmeta).init();
             return maincommand.execute()
@@ -954,7 +1633,7 @@ module.exports.help = {
     start: clan_wrapper,
     name: "clan",
     aliases: ["guild"],
-    description: `Clans Module`,
+    description: `Starting point for all clan-related commands.`,
     usage: `${require(`../../.data/environment.json`).prefix}clan2`,
 	group: "Admin",
 	public: false,

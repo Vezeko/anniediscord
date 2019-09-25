@@ -183,10 +183,14 @@ class databaseUtils {
             WHERE userId = "${this.id}"`);
         }
 
-        addLuckyTickets(amount = 0) {
+        async addLuckyTickets(amount = 0) {
+            // Fwubbles Hotfix
+            let ticketcount
+            let oldcount = (await sql.get(`SELECT lucky_ticket FROM userinventories WHERE userId = "${this.id}"`)).lucky_ticket
+            oldcount === null ? ticketcount = amount : ticketcount = oldcount + amount
             sql.run(`
                 UPDATE userinventories
-                SET lucky_ticket = lucky_ticket + ${amount}
+                SET lucky_ticket = ${ticketcount}
                 WHERE userId = "${this.id}"
             `)
         }
