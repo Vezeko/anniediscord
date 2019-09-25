@@ -1,0 +1,48 @@
+2019-09-22T23:16:46.153Z [info]: Database successfully connected (1.520899 ms)
+2019-09-22T23:16:49.071Z [info]: 62 command modules loaded (2910.3674 ms)
+2019-09-22T23:16:51.753Z [info]: cluster04-[dwarfannie] up in dev environment. (7091.6668 ms)
+2019-09-22T23:17:20.170Z [info]: [🍉ˋˏ┋  sandbox] undefined: received 16 AC(0% bonus). (28,939 --> 28,955)
+2019-09-22T23:17:20.178Z [info]: undefined: level up to LVL 11 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.215Z [info]: undefined: level up to LVL 12 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.217Z [info]: undefined: level up to LVL 13 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.218Z [info]: undefined: level up to LVL 14 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.221Z [info]: undefined: level up to LVL 15 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.283Z [info]: undefined: level up to LVL 16 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.336Z [info]: undefined: level up to LVL 17 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.389Z [info]: undefined: level up to LVL 18 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.391Z [info]: undefined: level up to LVL 19 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.392Z [info]: undefined: level up to LVL 20 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.394Z [info]: undefined: level up to LVL 21 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.395Z [info]: undefined: level up to LVL 22 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.397Z [info]: undefined: level up to LVL 23 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.399Z [info]: undefined: level up to LVL 24 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.402Z [info]: undefined: level up to LVL 25 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.404Z [info]: undefined: level up to LVL 26 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.516Z [info]: undefined: level up to LVL 27 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:20.518Z [info]: undefined: level up to LVL 28 in 🍉ˋˏ┋  sandbox
+2019-09-22T23:17:22.401Z [info]: [🍉ˋˏ┋  sandbox] undefined: received 13 EXP(0% bonus). (77,042 --> 77,055)
+2019-09-22T23:17:45.968Z [info]: [🍉ˋˏ┋  sandbox] secretdwarf05#2853: ran level command. (25821.8024 ms)
+2019-09-22T23:24:13.042Z [info]: Database successfully connected (1.166601 ms)
+2019-09-22T23:24:14.531Z [info]: 62 command modules loaded (1481.4928 ms)
+2019-09-22T23:24:16.817Z [info]: cluster04-[dwarfannie] up in dev environment. (4745.7244009999995 ms)
+2019-09-22T23:24:35.071Z [info]: [🍉ˋˏ┋  sandbox] sunnyrainyworks#8308: received 13 AC(0% bonus). (224,106 --> 224,119)
+2019-09-22T23:24:35.082Z [info]: [🍉ˋˏ┋  sandbox] sunnyrainyworks#8308: received 12 EXP(0% bonus). (563,343 --> 563,355)
+2019-09-22T23:24:35.348Z [info]: [🍉ˋˏ┋  sandbox] undefined: received 14 AC(0% bonus). (41,240 --> 41,254)
+2019-09-22T23:24:35.351Z [info]: [🍉ˋˏ┋  sandbox] undefined: received 15 EXP(0% bonus). (77,055 --> 77,070)
+2019-09-22T23:24:38.264Z [info]: [🍉ˋˏ┋  sandbox] sunnyrainyworks#8308: ran level command. (3217.9485 ms)
+2019-09-22T23:24:39.136Z [info]: [🍉ˋˏ┋  sandbox] secretdwarf05#2853: ran level command. (3808.0005 ms)
+2019-09-22T23:29:08.863Z [info]: Database successfully connected (1.2213 ms)
+2019-09-22T23:29:10.590Z [info]: 62 command modules loaded (1717.9865 ms)
+2019-09-22T23:29:18.667Z [info]: cluster04-[dwarfannie] up in dev environment. (10925.0084 ms)
+2019-09-22T23:30:39.864Z [error]: Ops, something went wrong. > getaddrinfo ENOTFOUND gateway.discord.gg gateway.discord.gg:443
+2019-09-22T23:30:45.618Z [error]: Ops, something went wrong. > getaddrinfo ENOTFOUND gateway.discord.gg gateway.discord.gg:443
+2019-09-22T23:30:51.135Z [error]: Ops, something went wrong. > getaddrinfo ENOTFOUND gateway.discord.gg gateway.discord.gg:443
+2019-09-22T23:30:56.676Z [error]: Ops, something went wrong. > getaddrinfo ENOTFOUND gateway.discord.gg gateway.discord.gg:443
+2019-09-22T23:31:02.181Z [error]: Ops, something went wrong. > getaddrinfo ENOTFOUND gateway.discord.gg gateway.discord.gg:443
+2019-09-22T23:31:07.692Z [error]: Ops, something went wrong. > getaddrinfo ENOTFOUND gateway.discord.gg gateway.discord.gg:443
+2019-09-22T23:31:13.212Z [error]: Ops, something went wrong. > getaddrinfo ENOTFOUND gateway.discord.gg gateway.discord.gg:443
+2019-09-22T23:31:18.737Z [error]: Ops, something went wrong. > getaddrinfo ENOTFOUND gateway.discord.gg gateway.discord.gg:443
+2019-09-22T23:31:24.250Z [error]: Ops, something went wrong. > getaddrinfo ENOTFOUND gateway.discord.gg gateway.discord.gg:443
+2019-09-22T23:31:29.766Z [error]: Ops, something went wrong. > getaddrinfo ENOTFOUND gateway.discord.gg gateway.discord.gg:443
+2019-09-22T23:31:35.280Z [error]: Ops, something went wrong. > getaddrinfo ENOTFOUND gateway.discord.gg gateway.discord.gg:443
+2019-09-22T23:31:40.792Z [error]: Ops, something went wrong. > getaddrinfo ENOTFOUND gateway.discord.gg gateway.discord.gg:443

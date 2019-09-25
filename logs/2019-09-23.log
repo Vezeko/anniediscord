@@ -1,0 +1,89 @@
+2019-09-23T17:27:05.803Z [info]: Database successfully connected (1.197599 ms)
+2019-09-23T17:27:10.276Z [info]: 62 command modules loaded (4464.4219 ms)
+2019-09-23T17:27:13.851Z [info]: cluster04-[dwarfannie] up in dev environment. (10152.6464 ms)
+2019-09-23T17:27:54.753Z [info]: [🍉ˋˏ┋  sandbox] undefined: received 13 AC(0% bonus). (41,254 --> 41,267)
+2019-09-23T17:27:54.765Z [info]: undefined: level up to LVL 10 in 🍉ˋˏ┋  sandbox
+2019-09-23T17:27:55.322Z [info]: [🍉ˋˏ┋  sandbox] undefined: received 14 EXP(0% bonus). (8,645 --> 8,659)
+2019-09-23T17:27:56.321Z [info]: [🍉ˋˏ┋  sandbox] secretdwarf05#2853: ran level command. (1604.550499 ms)
+2019-09-23T17:28:28.957Z [info]: [🍉ˋˏ┋  sandbox] undefined: received 13 AC(0% bonus). (41,617 --> 41,630)
+2019-09-23T17:28:28.960Z [info]: [🍉ˋˏ┋  sandbox] undefined: received 10 EXP(0% bonus). (8,659 --> 8,669)
+2019-09-23T17:28:30.236Z [info]: [🍉ˋˏ┋  sandbox] secretdwarf05#2853: ran level command. (1314.652801 ms)
+2019-09-23T17:32:51.991Z [info]: [bot] secretdwarf05#2853: received 16 EXP(0% bonus). (8,669 --> 8,685)
+2019-09-23T17:44:41.277Z [info]: [bot] sunnyrainyworks#8308: received 16 EXP(0% bonus). (563,355 --> 563,371)
+2019-09-23T17:44:50.164Z [info]: [bot] secretdwarf05#2853: received 14 EXP(0% bonus). (8,685 --> 8,699)
+2019-09-23T18:22:52.649Z [info]: [bot] secretdwarf05#2853: received 11 EXP(0% bonus). (8,699 --> 8,710)
+2019-09-23T18:23:15.042Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:16.063Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:17.085Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:18.106Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:19.128Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:29.175Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:30.195Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:31.218Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:32.241Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:33.262Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:41.663Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:42.688Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:43.710Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:44.731Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:45.752Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:46.776Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:47.799Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:48.821Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:49.844Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:23:50.867Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:24:05.106Z [info]: [bot] secretdwarf05#2853: received 13 EXP(0% bonus). (77,042 --> 77,055)
+2019-09-23T18:24:43.944Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:24:44.965Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:24:45.988Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:24:47.010Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:24:48.032Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:24:48.037Z [info]: [bot] secretdwarf05#2853: received 13 EXP(0% bonus). (77,055 --> 77,068)
+2019-09-23T18:24:49.108Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:24:53.203Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:24:54.226Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:24:55.249Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:24:56.272Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:24:57.294Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:01.038Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:02.060Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:03.081Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:04.102Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:05.124Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:09.091Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:10.114Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:11.133Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:12.155Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:13.175Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:14.198Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:15.220Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:16.240Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:17.260Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:18.281Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:19.301Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:20.324Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:20.328Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:21.402Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:22.425Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:23.605Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:24.628Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:25.650Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:26.671Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:27.691Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:28.712Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:29.732Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:30.754Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:30.757Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:30.810Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:31.832Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:32.852Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:33.875Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:34.897Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:25:35.919Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:28:37.944Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:28:38.966Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:28:39.988Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:28:41.010Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:28:42.032Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
+2019-09-23T18:28:42.037Z [info]: [bot] secretdwarf05#2853: received 13 EXP(0% bonus). (77,055 --> 77,068)
+2019-09-23T18:28:43.120Z [error]: Database._query() has failed to run. > Error: SQLITE_BUSY: database is locked
