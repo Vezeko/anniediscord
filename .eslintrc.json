@@ -13,10 +13,18 @@
         "ecmaVersion": 2018
     },
     "rules": {
-        "no-unused-vars": ["error", { "vars": "local", "args": "none" }],
-        "no-console": "off",
-        "no-useless-escape": "off",
-        "terms": ["todo", "fixme", "any other term"], "location": "anywhere",
-        "no-extra-semi": "off"
+        "no-mixed-spaces-and-tabs": "off",
+		"no-irregular-whitespace" : "off",
+        "no-console": "error",
+        "indent": "off",
+        "linebreak-style": "off",
+        "quotes": [
+            "error",
+            "backtick"
+        ],
+        "semi": [
+            "error",
+            "never"
+        ]
     }
 }

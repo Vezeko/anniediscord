@@ -1,15 +1,14 @@
 {
-  "//1": "describes your app and its dependencies",
-  "//2": "https://docs.npmjs.com/files/package.json",
-  "//3": "updating this file will download and update your packages",
   "name": "anniediscord",
-  "version": "4.1.0",
+  "version": "5.0.1",
   "description": "Art-dedicated Discord Bot",
   "main": "server.js",
   "scripts": {
-    "test": "mocha",
-    "start": "pm2 start server.js --no-daemon --max-memory-restart 400M",
-    "beta": "nodemon server.js"
+    "test": "npm run linting && npm run unit-test && echo 'Finished.'",
+    "linting": "eslint . ",
+    "unit-test": "node ./node_modules/mocha/bin/mocha \"test/initial.test.js\"",
+    "start": "pm2 start index.js --no-daemon --max-memory-restart 400M",
+    "beta": "nodemon index.js"
   },
   "engines": {
     "node": "10.16.0"
@@ -18,29 +17,38 @@
   "license": "MIT",
   "dependencies": {
     "axios": ">=0.19.0",
-    "canvas": "^2.5.0",
-    "canvas-constructor": "^3.0.3",
+    "canvas": "^2.6.0",
+    "canvas-constructor": "^3.1.0",
     "chai": "^4.2.0",
     "color": "^3.1.2",
-    "discord-emoji": "^1.1.1",
     "discord.js": "^11.5.1",
-    "dotenv": "^8.0.0",
+    "dotenv": "^8.1.0",
     "express": "^4.17.1",
     "fs-nextra": "^0.4.5",
-    "jimp": "^0.6.0",
+    "jimp": "^0.8.3",
+    "keyv": "^3.1.0",
+    "mocha": "^6.2.0",
     "moment": "^2.24.0",
+<<<<<<< HEAD
     "moment-timezone": "^0.5.23",
     "node-emoji": "^1.9.0",
     "node-emoji-clock": "^0.1.0",
+=======
+    "moment-timezone": "^0.5.26",
+>>>>>>> d310f3a73f84beb7d9ea7273c83cb6d29b7c2938
     "node-fetch": "^2.6.0",
     "parse-ms": "^2.0.0",
     "pm2": "^3.5.1",
-    "probe-image-size": "^4.0.0",
+    "probe-image-size": "^5.0.0",
+    "sinon": "^7.4.1",
     "sqlite": "^3.0.2",
-    "sqlite3": "^4.0.9",
-    "superagent": "^5.1.0"
+    "sqlite3": "^4.1.0",
+    "superagent": "^5.1.0",
+    "winston": "^3.2.1",
+    "winston-daily-rotate-file": "^4.1.0"
   },
   "devDependencies": {
-    "eslint": "^5.16.0"
+    "eslint": "^5.16.0",
+    "nodemon": "^1.19.2"
   }
 }

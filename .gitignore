@@ -1,6 +1,7 @@
 node_modules
+.idea/
 .data/
 .env
 package-lock.json
 .vscode/
-modules/commands/PansSandbox
+modules/commands/pans_sandbox
