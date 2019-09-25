@@ -64,22 +64,12 @@ class Experience extends Controller {
          * @param {integer} c current curve exp until next exp cap
          * @formula
          */
-		const formula = (x, level, b, c) => {
-			for (let i = 150; i !== x; i += c) {
-				b += c
-				c += 200
-				level++
-				if (i > x) {
-					break
-				}
-			}
-			return {
-				x: x,
-				level: level,
-				b: b,
-				c: c
-
-			}
+		const formula = (exp) => {
+			var level
+			level = (Math.sqrt(4*exp - 375)/20) - 0.25
+			level = Math.floor(level)
+			return level
+			
 		}
 
 		//  Apply bonus if available
