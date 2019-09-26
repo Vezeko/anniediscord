@@ -10,7 +10,7 @@ class clan_wrapper {
     }
     async execute() {
         const Discord = require('discord.js');                      //  Temporary
-        const env = require('../../.data/environment.json');        //  Temporary
+        const env = require('../../../.data/environment.json');        //  Temporary
         const sql = require('sqlite');
         sql.open('.data/database.sqlite');
 
@@ -125,8 +125,8 @@ class clan_wrapper {
                 return members.filter(filter).first();
             }
             async _botHasNicknamePerms() {
-                return message.guild.members.get(bot.user.id).hasPermission("MANAGE_NICKNAMES") &&
-                message.guild.members.get(bot.user.id).hasPermission("CHANGE_NICKNAME");
+                let botclient = message.guild.members.get(bot.user.id)
+                return botclient.hasPermission("MANAGE_NICKNAMES") && botclient.hasPermission("CHANGE_NICKNAME");
             }
  
 
@@ -135,7 +135,7 @@ class clan_wrapper {
             async setNickname(newnickname) {
                 await this._get_user();
                 if (await this._botHasNicknamePerms()) {
-                    await this.$client.setNickname(newnickname);
+                    await this.client.setNickname(newnickname);
                     await this._get_user();
                 } else throw error;
             }
@@ -245,14 +245,15 @@ class clan_wrapper {
                 memberlist.forEach(async e => {
                     let tag = ''
                     let new_nickname
-                    let member = message.guild.members.get(e.userId)
+                    let member = await new User(e.userId).init();
+                    //let member = message.guild.members.get(e.userId)
                     member.nickname
                         ? new_nickname = member.nickname.replace(RegExp(/\s*『[^『』]*』/g), '')
-                        : new_nickname = member.user.username.replace(RegExp(/\s*『[^『』]*』/g), '')
+                        : new_nickname = member.name.replace(RegExp(/\s*『[^『』]*』/g), '')
                     if (this.tag) tag = ` 『${this.tag}』`
                     new_nickname = `${new_nickname.slice(0, 32-tag.length)}${tag}`
                     try { await member.setNickname(new_nickname.slice(0, 32)) }
-                    catch (e) { console.log(`Failed to modify clan tag: ${member.user.username} | ${member.id}`) }
+                    catch (e) { console.log(`Failed to modify clan tag: ${member.name} | ${member.id}`) }
                     return this
                 })
             }
@@ -869,14 +870,14 @@ class clan_wrapper {
                     "459891664182312980" : "@everyone"
                 },
                 developer : { 
-                    "599790070366601238" : "Clans : Developer Mode"
+                    "502843277041729546" : "Developer Team"
                 },
                 admin : { 
                     "459936023498063902" : "Grand Master",
                     "465587578327007233" : "Creators Council"
                 },
                 beta : {
-                    "598964254498095117" : "Clans : Beta Access"
+                    "626692698262208522" : "Clans Beta Access"
                 },
                 nobody : {
                     "999999999999999999" : "Nonexistant Test Role"
@@ -1492,35 +1493,29 @@ class clan_wrapper {
         let test = {
             metadata: new Metadata("test")
                 .setInfo("Testing Room 1")
-                .setAccess({ role: "admin" }),
+                .setAccess({ role: "developer" })
+                .setInput({
+                    prompt: new Embed()
+                        .setColor(msg.promptcolor)
+                        .setDescription(`Change Username Test.`),
+                    require: true })
+                .setArguments([
+                    {   
+                    arg: "target",
+                    msg: "Username?",
+                    cond: msg.help_cancel },
+                    { 
+                    arg: "new nickname",
+                    msg: "New Nickname?",
+                    cond: msg.help_cancel }]),
 
             execute: async(metadata) => {
- 
-                let array
+                let target = await new User(args[0]).init()
+                let old_nickname = target.nickname
+                let new_nickname = args[1]
+                await target.setNickname(new_nickname)
+                msg.prompt(`${old_nickname} | ${target.nickname}`).send()
 
-                array = []
-                array = [`You have applied to:\n`]
-                if (user.applications)
-                user.applications.forEach((e, i) => {
-                    array.push(`\`[${i+1}]\` <@&${e.clanId}>\n`)
-                })
-                msg.prompt(`${array.join(`\n`)}`).send()
-
-                array = []
-                array = [`**${userclan.name}** - Sent Invitations:\n`]
-                if (userclan.invitations)
-                userclan.invitations.forEach((e, i) => {
-                    array.push(`\`[${i+1}]\` <@${e.userId}>\n`)
-                })
-                msg.prompt(`${array.join(`\n`)}`).send()
-
-                array = []
-                array = [`**${userclan.name}** - Recieved Applications:\n`]
-                if (userclan.applications)
-                userclan.applications.forEach((e, i) => {
-                    array.push(`\`[${i+1}]\` <@${e.userId}>\n`)
-                })
-                msg.prompt(`${array.join(`\n`)}`).send()
             }
         }
         /***************************************************************************************************
@@ -1560,7 +1555,7 @@ class clan_wrapper {
                 .setInput({
                     prompt: new Embed()
                         .setColor(msg.promptcolor)
-                        .attachFiles(['./images/clan_banner.png'])
+                        //.attachFiles(['./images/clan_banner.png'])
                         .setDescription(`[SUBCOMMANDLIST]`),
                     require: true })
                 .setArguments({
@@ -1593,7 +1588,7 @@ module.exports.help = {
     name: "clan",
     aliases: ["guild"],
     description: `Starting point for all clan-related commands.`,
-    usage: `${require(`../../../.data/environment.json`).prefix}clan2`,
+    usage: `${require(`../../../.data/environment.json`).prefix}clan`,
 	group: "Admin",
 	public: false,
 	required_usermetadata: true,
