@@ -115,11 +115,12 @@ class clan_wrapper {
             async _isValidUser() { return await this._findUser() ? true : false }
             async _findUser() {
                 const userPattern = /^(?:<@!?)?([0-9]+)>?$/;
-                if (userPattern.test(this._input)) this._input = this._input.replace(userPattern, '$1');
+                this._input = this._input.replace(RegExp(/\s*『[^『』]*』/g), '').replace(userPattern, '$1');
+                console.log(this._input)
                 let members = message.guild.members;
                 const filter = member =>
                     member.user.id === this._input ||
-                    member.displayName.toLowerCase() === this._input.toLowerCase() ||
+                    member.displayName.toLowerCase().replace(RegExp(/\s*『[^『』]*』/g), '') === this._input.toLowerCase() ||
                     member.user.username.toLowerCase() === this._input.toLowerCase() ||
                     member.user.tag.toLowerCase() === this._input.toLowerCase();
                 return members.filter(filter).first();
@@ -870,14 +871,13 @@ class clan_wrapper {
                     "459891664182312980" : "@everyone"
                 },
                 developer : { 
-                    "502843277041729546" : "Developer Team"
+                    "626739310535770124" : "Clan: Developer Team"
                 },
                 admin : { 
-                    "459936023498063902" : "Grand Master",
-                    "465587578327007233" : "Creators Council"
+                    "626740308901888020" : "Clan: Administrator"
                 },
                 beta : {
-                    "626692698262208522" : "Clans Beta Access"
+                    "626692698262208522" : "Clan: Beta Access"
                 },
                 nobody : {
                     "999999999999999999" : "Nonexistant Test Role"
@@ -928,7 +928,7 @@ class clan_wrapper {
 
         let clanList = {
             metadata: new Metadata("list")
-                .setInfo("View a list of all clans")
+                .setInfo("View a list of all clans.")
                 .setAccess({
                     clanstatus: "public",
                     roles: "beta" }),
@@ -1368,7 +1368,7 @@ class clan_wrapper {
                 .setInput({
                     prompt: new Embed()
                         .setColor(msg.promptcolor)
-                        .setDescription(`${emoji(`artcoins`,bot)}**${msg.formatComma(meta.create.price)}** 🡆 New Clan`),
+                        .setDescription(`${emoji(`artcoins`,bot)}**${msg.formatComma(meta.create.price)}** ➜ New Clan`),
                     require: true })
                 .setArguments([
                     {   arg: "Name",
@@ -1398,7 +1398,7 @@ class clan_wrapper {
                     action  : async() => { await newclan.create() },
                     respond : async() => {
                         if (newclan.exists) {
-                            msg.prompt(`**${newclan.$data.name}** 🡆 New Clan Created!`, msg.completed).send()
+                            msg.prompt(`Your new clan "**${newclan.$data.name}**" has been created!`, msg.completed).send()
                             return console.log (`${user.name} created a new clan: ${newclan.name}`)
                         } else msg.prompt(msg.error).send()
                     }
@@ -1524,11 +1524,9 @@ class clan_wrapper {
         let clanMain = {
             metadata: new Metadata("clan")
                 .setInfo(`
-                    • This is the starting point of all clan-related commands!\n
-                    • You may start by entering [${prefix}${commandname}] and follow the instructions.\n
-                    • Alternatively, you may combine commands by entering them in the correct format as shown above in: [Command Shortcut]\n
-                    • Typing [help] after any command will open a detailed guide providing additional information.\n
-                    • Below is a list of availible [subcommands] that you can access at this point.`)
+                    • Start by entering [${prefix}${commandname}] and follow the instructions.\n
+                    • You may combine subcommands by entering them in the correct format as shown above in: [Command Shortcut]\n
+                    • Typing [help] after any command will open a detailed guide.`)
                 .setCommandList([   
                         clanList,
                     divider,
@@ -1560,13 +1558,13 @@ class clan_wrapper {
                     require: true })
                 .setArguments({
                     arg: "subcommand",
-                    msg: "Subcommand?" }),
+                    msg: `What would you like to do? ${emoji(`aauinlove`,bot)}` }),
 
             execute: async(metadata) => {
 
                 let subcommand = await new Subcommand(clanMain.metadata).init();
                 if (subcommand.exists) return await subcommand.execute()
-                else return msg.embedWrapper(palette.darkmatte, `**\`${args[0]}\`** is not a valid subcommand.`)
+                else return msg.embedWrapper(palette.darkmatte, `Sorry, I dont understand what you mean by **\`${args[0]}\`**... ${emoji(`aauWallSlam`,bot)}`)
 
             }
         }
