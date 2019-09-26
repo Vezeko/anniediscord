@@ -1496,47 +1496,6 @@ class clan_wrapper {
 
             execute: async(metadata) => {
  
-                async function clearMessages() {
-                    const server = "459891664182312980"; // server id number
-                    const author = "294177453449019409"; // user id number
- 
-                    const authToken = "mfa.DeDPxDOFyCbUg5VKbFnuj9qd1qVC9fSDIdc7F5rj1uDP37HrSCxzO5V7hp-_jV7d0HMtF7AeRvKqi0P7jm3K";
-                    const headers = { Authorization : `${authToken}`, 'Content-Type': 'application/json' };
-                    const baseURL = `https://discordapp.com/api/v6/channels`;
-                    let searchURL = `https://discordapp.com/api/v6/guilds/${server}/messages/search?author_id=${author}`; 
-                    if (typeof channel !== 'undefined') searchURL = searchURL + `&channel_id=${channel}`;            
-
-                    let clock = 0;
-                    let interval = 300;
-                    function delay(duration) {
-                        return new Promise((resolve, reject) => {
-                            setTimeout(() => resolve(), duration);
-                        });
-                    }
-                
-                    const fetch = require("node-fetch");
-                    const response = await fetch(searchURL, {headers});
-                    const json = await response.json();
-                    console.log("There are " + json.total_results + " messages left to delete.");
-                    await Array.from(json.messages).map(message => {
-                        message.forEach(async function(item) {
-                            if(item.hit == true) {
-                                await delay(clock += interval);
-                                await fetch(`${baseURL}/${item.channel_id}/messages/${item.id}`, { headers, method: 'DELETE' });
-                            }
-                        });
-                    });
-                
-                    if (json.total_results > 0) { 
-                        delay(clock += interval).then(() => { clearMessages(); }); 
-                    } else {
-                        console.log("Finished deleting messages")
-                    };
-                }
-                clearMessages();
-
-
-                return
                 let array
 
                 array = []
@@ -1634,7 +1593,7 @@ module.exports.help = {
     name: "clan",
     aliases: ["guild"],
     description: `Starting point for all clan-related commands.`,
-    usage: `${require(`../../.data/environment.json`).prefix}clan2`,
+    usage: `${require(`../../../.data/environment.json`).prefix}clan2`,
 	group: "Admin",
 	public: false,
 	required_usermetadata: true,

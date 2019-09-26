@@ -29,13 +29,7 @@
     "keyv": "^3.1.0",
     "mocha": "^6.2.0",
     "moment": "^2.24.0",
-<<<<<<< HEAD
-    "moment-timezone": "^0.5.23",
-    "node-emoji": "^1.9.0",
-    "node-emoji-clock": "^0.1.0",
-=======
     "moment-timezone": "^0.5.26",
->>>>>>> d310f3a73f84beb7d9ea7273c83cb6d29b7c2938
     "node-fetch": "^2.6.0",
     "parse-ms": "^2.0.0",
     "pm2": "^3.5.1",

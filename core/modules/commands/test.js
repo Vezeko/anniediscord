@@ -15,7 +15,7 @@ module.exports.help = {
     name: "test",
     aliases: [],
     description: `--`,
-    usage: `${require(`../../.data/environment.json`).prefix}buy <item>`,
+    usage: `${require(`../../../.data/environment.json`).prefix}buy <item>`,
     group: "Admin",
     public: false,
     required_usermetadata: false,
