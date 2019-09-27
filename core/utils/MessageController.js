@@ -111,6 +111,21 @@ class MessageController {
 
 
     /**
+     *  Check if it's an art post and sent in an art boosted channel
+     *  @isArtPost
+     */
+    get isBoostedArtPost() {
+        return this.message.channel.id==`626927282602377226` && this._hasAttachment() ? true : false
+    }
+
+
+    get isNaphMsg() {
+        //in general and by Naph
+        return this.message.channel.id==`459891664182312982` && this.message.author.id==`230034968515051520` ? true : false
+    }
+
+
+    /**
      *  Check if it sent to event-submission channel
      *  @isEventSubmission
      */
@@ -143,7 +158,7 @@ class MessageController {
      *  @isCoolingDown
      */
     async isCoolingDown() {
-		//	If cooldown is not set, ignore this method.
+        if (env.DISABLE_COOLDOWN) return false
         if (!this.cd) return false
         if (await this.keyv.get(this.label)) return true
 		await this.keyv.set(this.label, `1`, this.cd)

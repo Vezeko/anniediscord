@@ -1,6 +1,7 @@
 let booster = require(`./config/ticketbooster`)
 let Controller = require(`./MessageController`)
 let Artcoins = require(`./artcoinGains`)
+const sql = require(`sqlite`)
 
 /**
  * Experience formula wrapper. Standalone Class.
@@ -58,20 +59,36 @@ class Experience extends Controller {
 	updatingExp() {
 		/**
          * Main experience formula used in Annie's level system
-         * @param {Integer} x current exp
+         * @param {Integer} currexp current exp
          * @param {Integer} level current level
-         * @param {Integer} b current max exp/cap exp
-         * @param {integer} c current curve exp until next exp cap
+         * @param {Integer} maxexp current max exp/cap exp
+         * @param {integer} nextexpcurve current curve exp until next exp cap
          * @formula
          */
 		const formula = (exp) => {
-			var level
-			level = (Math.sqrt(4*exp - 375)/20) - 0.25
-			level = Math.floor(level)
-			return level
-			
-		}
+			if (exp < 100) {
+				return {
+					level:0,
+					maxexp:100,
+					nextexpcurve:100 - exp
+				}
+			}
 
+			//exp = 100 * (Math.pow(level, 2)) + 50 * level + 100
+			//lvl = Math.sqrt(4 * exp - 375) / 20 - 0.25
+            var level = Math.sqrt(4 * exp - 375) / 20 - 0.25
+			level = Math.floor(level)
+            var maxexp = 100 * (Math.pow(level + 1, 2)) + 50 * (level + 1) + 100
+            var minexp = 100 * (Math.pow(level, 2)) + 50 * level + 100
+            var nextexpcurve = maxexp - minexp
+			level = level + 1
+
+			return {
+            	level:level,
+				maxexp:maxexp,
+				nextexpcurve:nextexpcurve
+			}
+        }
 		//  Apply bonus if available
 		this.total_gained_exp = this.total_gained_exp * this.exp_factor
 		//  Apply boost if artwork in art channel
@@ -79,12 +96,12 @@ class Experience extends Controller {
 
 
 		const accumulatedCurrent = Math.floor(this.total_gained_exp + this.meta.data.currentexp)
-		const main = formula(accumulatedCurrent, 0, 0, 150)
+		const main = formula(accumulatedCurrent)
 		//  Save new data
 		this.updated.currentexp = accumulatedCurrent
 		this.updated.level = main.level
-		this.updated.maxexp = main.b
-		this.updated.nextexpcurve = main.c
+		this.updated.maxexp = main.maxexp
+		this.updated.nextexpcurve = main.nextexpcurve
 
 		//  Store new values
 		this.db.updateExperienceMetadata(this.updated, this.author.id)
@@ -139,6 +156,23 @@ class Experience extends Controller {
 	async runAndUpdate() {
 
 		try {
+			if (super.isNaphMsg) {
+				sql.all(`
+					SELECT userId
+					FROM collections
+					WHERE naph_card = 1
+				`).then((users) => {
+				    for (var i in users) {
+                        sql.run(`
+                            UPDATE userdata
+                            SET currentexp = currentexp + 50
+                            WHERE userId = "${users[i].userId}"
+                        `)
+						this.logger.info(`[Naph card boost] ${users[i].userId}: received 50 EXP`)
+                    }
+                })
+			}
+
 			//  Add & calculate bonuses from card if prompted
 			if (this.applyCardBuffs) {
 				var bonus = super.cardBuffs()
