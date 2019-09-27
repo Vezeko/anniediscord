@@ -1,7 +1,6 @@
 let booster = require(`./config/ticketbooster`)
 let Controller = require(`./MessageController`)
 let Artcoins = require(`./artcoinGains`)
-const sql = require(`sqlite`)
 
 /**
  * Experience formula wrapper. Standalone Class.
@@ -18,6 +17,8 @@ class Experience extends Controller {
 	constructor(data) {
 		super(data)
 		this.data = data
+		this.bot = data.bot
+		this.keyv = data.bot.keyv
 		this.applyTicketBuffs = data.applyTicketBuffs
 		this.applyCardBuffs = data.applyCardBuffs
 		this.exp_factor = data.exp_factor ? data.exp_factor : 1
@@ -147,6 +148,17 @@ class Experience extends Controller {
 	}
 
 
+	/**
+	 * 	Check if the message is sent by staff with passive ticket boost
+	 * 	@ticketBuffs
+	 */
+	async handlePassiveTicketBoost() {
+		if (super.isRaluMsg) {
+			this.bot.cards.ami_card.skills.main.effect.exp = 0.15
+			await this.keyv.set(`ralubuff`, `1h`, 3600000)
+		} 
+		if (super.isNaphMsg) this.db.whiteCatParadise()
+	}
 
 
 	/**
@@ -154,24 +166,8 @@ class Experience extends Controller {
 	 * 	@runAndUpdate
 	 */
 	async runAndUpdate() {
-
 		try {
-			if (super.isNaphMsg) {
-				sql.all(`
-					SELECT userId
-					FROM collections
-					WHERE naph_card = 1
-				`).then((users) => {
-				    for (var i in users) {
-                        sql.run(`
-                            UPDATE userdata
-                            SET currentexp = currentexp + 50
-                            WHERE userId = "${users[i].userId}"
-                        `)
-						this.logger.info(`[Naph card boost] ${users[i].userId}: received 50 EXP`)
-                    }
-                })
-			}
+			this.handlePassiveTicketBoost()
 
 			//  Add & calculate bonuses from card if prompted
 			if (this.applyCardBuffs) {
