@@ -134,16 +134,28 @@ class Experience extends Controller {
 
 			//  skip if user doesn't have any booster that currently active.
 			if (!expbooster) return
-
 			let percentage = expbooster.replace(/ *\([^)]*\) */g, ``)
 			let limitduration = booster[percentage][/\(([^)]+)\)/.exec(expbooster)[1]]
 			let boosterStillValid = expbooster_duration && limitduration - (Date.now() - expbooster_duration) > 0
 
-			//	Assign boost if booster still valid
-			if (boosterStillValid) this.exp_factor += booster[percentage].multiplier
+			//	Notify user if their booster is expired.
+			if (!boosterStillValid) {
+				this.db.resetExpBooster()
+				this.reply(this.code.BOOSTER.EXP_EXPIRED, {
+					field: this.meta.author,
+					socket: [
+						this.data.name(this.meta.author.id),
+						expbooster
+					]
+				})
+				return this.logger.info(`${this.meta.author.tag} ${expbooster} EXP booster has expired today.`)
+				
+			}
+			
+			this.exp_factor += booster[percentage].multiplier
 		}
 		catch (e) {
-			return
+			return this.logger.error(`Failed to check EXP booster on ${this.meta.author.tag}. > ${e.stack}`)
 		}
 	}
 
@@ -170,7 +182,7 @@ class Experience extends Controller {
 			this.handlePassiveTicketBoost()
 
 			//  Add & calculate bonuses from card if prompted
-			if (this.applyCardBuffs) {
+			if (!this.applyCardBuffs) {
 				var bonus = super.cardBuffs()
 				this.exp_factor += bonus.exp
 			}
@@ -190,7 +202,7 @@ class Experience extends Controller {
 			}
 
 			//	Save record
-			this.logger.info(`[${this.message.channel.name}] ${this.author.tag}: received ${this.total_gained_exp} EXP(${(this.exp_factor-1) * 100}% bonus). (${this.data.commanifier(this.meta.data.currentexp)} --> ${this.data.commanifier(this.updated.currentexp)})`)
+			this.logger.info(`[${this.message.channel.name}] ${this.author.tag}: received ${this.total_gained_exp} EXP(${(this.exp_factor === 1 ? 0 : this.exp_factor-2) * 100}% bonus). (${this.data.commanifier(this.meta.data.currentexp)} --> ${this.data.commanifier(this.updated.currentexp)})`)
 
 		}
 		catch (e) {

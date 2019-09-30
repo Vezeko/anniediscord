@@ -41,8 +41,8 @@ class Artcoins extends Controller {
 		if (super.isArtPost) this.total_gained_ac = this.total_gained_ac * 10
 		if (super.isBoostedArtPost) this.total_gained_ac = this.total_gained_ac * 2
 
-		this.db.storeArtcoins(Math.floor(this.total_gained_ac), this.author.id)
-		this.logger.info(`[${this.message.channel.name}] ${this.author.tag}: received ${this.total_gained_ac} AC(${(this.ac_factor-1) * 100}% bonus). (${this.data.commanifier(this.meta.data.artcoins)} --> ${this.data.commanifier(this.meta.data.artcoins + this.total_gained_ac)})`)
+		this.db.storeArtcoins(Math.floor(this.total_gained_ac))
+		this.logger.info(`[${this.message.channel.name}] ${this.author.tag}: received ${this.total_gained_ac} AC(${this.ac_factor === 1 ? 0 : this.ac_factor-2}% bonus). (${this.data.commanifier(this.meta.data.artcoins)} --> ${this.data.commanifier(this.meta.data.artcoins + this.total_gained_ac)})`)
     }
 
 
@@ -54,13 +54,35 @@ class Artcoins extends Controller {
 		//	Return if they are still on same level
 		if (this.updated.level == this.meta.data.level) return
 
+		let isLvlJump = (this.updated.level - this.meta.data.level) > 1 
+		if (isLvlJump) {
+			const threeshold = this.updated.level - this.meta.data.level
+			let bonusac = 0
+			//	Accumulate bonus
+			for (let i = 0; i<threeshold; i++) bonusac += 35 * (this.meta.data.level + i)
+
+			this.db.storeArtcoins(bonusac)
+			return this.reply(this.code.LEVELUP_JUMP, {
+				socket: [
+					this.emoji(`AnnieDab`),
+					this.meta.author,
+					this.updated.level,
+					threeshold,
+					this.emoji(`artcoins`),
+					this.data.commanifier(bonusac)
+				],
+				color: this.color.lightblue,
+				deleteIn: 30
+			})
+		}
+
 		// For each level
 		for (let i = this.meta.data.level + 1; i <= this.updated.level; i++) {
 			const updatedlevel = i
 			const bonusac = updatedlevel === 0 ? 35 : 35 * updatedlevel
 
 			// Add AC
-			this.db.storeArtcoins(bonusac, this.author.id)
+			this.db.storeArtcoins(bonusac)
 
 			//	Send levelup message
 			this.reply(this.code.LEVELUP, {
@@ -68,10 +90,12 @@ class Artcoins extends Controller {
 					this.emoji(`AnnieYay`),
 					this.meta.author,
 					updatedlevel,
-					bonusac
+					this.emoji(`artcoins`),
+					this.data.commanifier(bonusac)
 				],
-				color: this.color.blue
-            })
+				color: this.color.blue,
+				deleteIn: 30
+			})
             
             this.logger.info(`${this.author.tag}: level up to LVL ${updatedlevel} in ${this.message.channel.name}`)
 		}

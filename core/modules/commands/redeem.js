@@ -6,7 +6,6 @@ class Redeem {
 	constructor(Stacks) {
 		this.stacks = Stacks
 		this.ticket_price = 120
-		this.db = Stacks.db(Stacks.meta.author.id)
 	}
 
 
@@ -14,7 +13,7 @@ class Redeem {
      *  Initializer method
      */
 	async execute() {
-		const { args, commanifier, palette, emoji, trueInt, collector, reply, code: {REDEEM}, meta: {data} } = this.stacks
+		const { args, commanifier, db, palette, emoji, trueInt, collector, reply, code: {REDEEM}, meta: {data, author} } = this.stacks
 
 
 		//  Returns as short-guide if user doesn't specify any parameters
@@ -57,9 +56,9 @@ class Redeem {
 					//  Add collector fortune buffs if user has rany card
 					if (data.rany_card) {
 						//  Update Lucky Tickets
-						await this.db.addLuckyTickets(amount * 2)
+						await db(author.id).addLuckyTickets(amount * 2)
 						//  Withdraw artcoins
-						await this.db.withdraw(price, `artcoins`)
+						await db(author.id).withdraw(price, 52)
 
 						//  Redeem successful
 						return reply(REDEEM.COLLECTOR_FORTUNE, {
@@ -70,9 +69,9 @@ class Redeem {
 					}
 
 					//  Update Lucky Tickets
-					await this.db.addLuckyTickets(amount)
+					db(author.id).addLuckyTickets(amount)
 					//  Withdraw artcoins
-					await this.db.withdraw(price, `artcoins`)
+					db(author.id).withdraw(price, 52)
 
 
 					//  Redeem successful

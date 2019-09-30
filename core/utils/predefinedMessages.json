@@ -13,6 +13,9 @@
         "MISSING_ITEMNAME": "Don't forget to specify the item name",
         "INVALID_ITEM": "I can't find any item with that name . ."
     },
+    "BOOSTER": {
+        "EXP_EXPIRED": "Hello **{0}**, your **{1}** EXP Ticket has expired today. "
+    },
     "CHECKOUT": {
         "CANCEL": "Transaction cancelled.",
         "SUCCESSFUL": "Purchase successful!",
@@ -35,6 +38,11 @@
         "UNAVAILABLE": "You don't have any exp to claim.",
         "DISPLAY": "**{0} EXP** is available to claim.\nType `claim` to use the exp.",
         "SUCCESSFUL": "Yummy! **{0}(+{1})** EXP has been updated. Make sure to pat your cat!{2}"
+    },
+    "COLLECTION": {
+        "FETCHING": "`fetching {0} card collection ..`",
+        "HEADER": "{0} **| {1} Card Collection**",
+        "EMPTY": "You don't have any collection. Go test your luck with our gacha!`"
     },
     "DM": {
         "UNAVAILABLE_OPTION": "Sorry, I can't find any configuration for that.",
@@ -80,7 +88,8 @@
         "LIKED": "**{0}** and **{1} others** liked your post.",
         "SUCCESSFUL": "Congratulations, **{0}**!\nyour post in {1} has been featured!"
     },
-    "LEVELUP": "{0} Congratulations {1}!! You are now level **{2}**\n**{3}** AC has been added to your account!",
+    "LEVELUP": "{0} {1} has leveled up to **{2}**!\nhere's your **{3} {4} ** reward.",
+    "LEVELUP_JUMP": "{0} {1} has level up to **{2} (+{3} LV)**, awesome!\n here's your **{4} {5} ** reward. ",
     "INVALID_USER": "Sorry, I couldn't find that user.",
     "REQUEST_PING": "Request received in **{0} ms**",
     "RESET_EXP": "**{0}'s** experience metadata has been refreshed.",
