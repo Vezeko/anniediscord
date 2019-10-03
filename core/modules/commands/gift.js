@@ -31,7 +31,7 @@ class Gift {
      */
 	async execute() {
 		const { code: {GIFT}, bot:{db}, args, palette, emoji, name, reply, collector, trueInt, selfTargeting, parsingAvailableGifts } = this.stacks
-        
+
 		//  Centralized data
 		let metadata = {}
 

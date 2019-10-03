@@ -17,6 +17,7 @@ class Capsule {
 	async execute() {
 		const { db, palette,reply,name,trueInt,args,commanifier,emoji,code: {CAPSULE}, meta: {author,data} } = this.stacks
 		//  Centralized data object
+
 		let metadata = {
 			...this.stacks,
 			exp_per_capsule: 150,

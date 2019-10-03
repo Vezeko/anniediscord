@@ -378,8 +378,9 @@ class databaseUtils {
 
 	maintenanceUpdate(){
 		return sql.run(`
-				UPDATE userinventories
-				SET artcoins = artcoins + 1000 
+				UPDATE item_inventory
+				SET quantity = quantity + 1000 
+				WHERE item_id = 52
 			`)
 	}
 
@@ -991,8 +992,34 @@ class databaseUtils {
 		return sql.run(`DELETE FROM ${tablename} WHERE ${idtype} = ${id}`)
 	}
 
+	/**
+	 * Delete row data from given table.
+	 * @param tablename of target table.
+	 * @param id of userId
+	 * @param idtype of the id type.
+	 */
+	removeRowDataFromEventData(id, idtype = `name`, time) {
+		return sql.run(`DELETE FROM event_data WHERE active = 1 AND ${idtype} = '${id}' AND start_time = ${time} AND repeat_after = 0`).then(() => {
+			return logger.info(`Event: ${id} with start time of: ${time} has been deleted from the database.`)
+		})
+	}
 
+	updateEventDataActiveToOne(id, time){
+		return sql.run(`UPDATE event_data SET active = 1 WHERE name = '${id}' and start_time = ${time}`)
+	}
 
+	updateRowDataFromEventData(set, where){
+		return sql.run(`UPDATE event_data SET ${set} WHERE ${where}`)
+	}
+
+	/**
+			*   Pull data from event_data table.
+			* @param tablename of target table.
+			* @param id of userId
+			*/
+	pullEventData() {
+		return sql.all(`SELECT * FROM event_data WHERE NOT category = 'weekly' ORDER BY start_time`).then(async parsed => parsed)
+	}
 
 	/**
         *   Pull ID ranking based on given descendant column order.
@@ -1006,8 +1033,27 @@ class databaseUtils {
 			.then(async x => x[index][val])
 	}
 
+	/**
+        *   Pull ID ranking based on given descendant column order. FOR ARTCOINS
+        * @param tablename of target table.
+        * @param columnname of sorted descendant column. 
+        * @param index of user.
+        * @param val of returned data value.
+        */
+	indexRankingAC(tablename = `item_inventory`, columnname = `quantity`, index, val, itemId = 52) {
+		return sql.all(`SELECT ${val} FROM ${tablename} WHERE item_id = ${itemId} ORDER BY ${columnname} DESC`)
+			.then(async x => x[index][val])
+	}
 
-
+	/**
+			*   Pull Author ID ranking based on given descendant column order.
+			* @param tablename of target table.
+			* @param columnname of sorted descendant column. 
+			*/
+	authorIndexRankingAC(tablename, columnname, id = this.id) {
+		return sql.all(`SELECT user_id FROM ${tablename} WHERE item_id = 52 ORDER BY ${columnname} DESC`)
+			.then(async x => x.findIndex(z => z.user_id === id ))
+	}
 
 	/**
         *   Pull Author ID ranking based on given descendant column order.
