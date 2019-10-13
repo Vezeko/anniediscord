@@ -80,7 +80,7 @@ class Transaction {
 				}
 			}
 		}
-		return sql.all(`SELECT name, upper(name), alias, type, unique_type, price, price_type, desc, status, rarity 
+		return sql.all(`SELECT itemId,name, upper(name), alias, type, unique_type, price, price_type, desc, status, rarity 
                                         FROM itemlist 
                                         WHERE status = "${itemstatus}" 
                                         AND type = "${this.type}"`)

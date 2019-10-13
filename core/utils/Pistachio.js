@@ -77,13 +77,16 @@ class Pistachio {
 			container.isGachaField = [bot.channels.get(`578518964439744512`).name, bot.channels.get(`614737097454125056`).name].includes(message.channel.name)
 
 			//  Check for administrator authority
-			container.isAdmin = message.member.roles.find(r => (r.name === `Creators Council`) || (r.name === `Channel Overseer`))
+			container.isAdmin = message.member.roles.find(r => Object.keys(container.roles.admin).some(i => container.roles.admin[i] == r.id))
 
 			//  Check for developer authority
-			container.isDev = message.member.roles.find(r => (r.name === `Developer Team`) || (r.name === `Grand Master`))
+			container.isDev = message.member.roles.find(r => Object.keys(container.roles.dev_roles).some(i => container.roles.dev_roles[i] == r.id))
 
 			//  Check for event team authority
-			container.isEventManager = message.member.roles.find(r => r.name === `Events Team`)
+			container.isEventManager = message.member.roles.find(r => r.id === `591050124114001952`)
+
+			// Check for event team authority
+			container.isEventMember = message.member.roles.find(r => Object.keys(container.roles.events).some(i => container.roles.events[i] == r.id))
 
 
 			/**
@@ -243,7 +246,7 @@ class Pistachio {
 		}
 		//  Load asset from default images dir
 		container.loadAsset = async (id) => {
-			return fsn.readFile(`./core/images/${id}.png`)
+			return fsn.readFile(`./core/images/${id}.png`).catch(async ()=>{return fsn.readFile(`./core/images/halloween/${id}.png`)})
 		}
 
 
@@ -303,7 +306,9 @@ class Pistachio {
 		container.reply = async (content, options = {
 			socket: [],
 			color: ``,
+			url: null,
 			image: null,
+			imageGif: null,
 			field: message.channel,
 			simplified: false,
 			notch: false,
@@ -316,7 +321,9 @@ class Pistachio {
 		}) => {
 			options.socket = !options.socket ? [] : options.socket
 			options.color = !options.color ? container.palette.darkmatte : options.color
+			options.url = !options.url ? null : options.url
 			options.image = !options.image ? null : options.image
+			options.imageGif = !options.imageGif ? null : options.imageGif
 			options.field = !options.field ? message.channel : options.field
 			options.simplified = !options.simplified ? false : options.simplified
 			options.thumbnail = !options.thumbnail ? null : options.thumbnail
@@ -351,6 +358,17 @@ class Pistachio {
 
 			//  Add footer
 			if (options.footer) embed.setFooter(options.footer)
+
+			// Add url
+			if (options.url) embed.setURL(options.url)
+
+			//  Add image preview
+			if (options.imageGif) {
+				embed.setImage(options.imageGif)
+			} else if (embed.file) {
+				embed.image.url = null
+				embed.file = null
+			}
 
 			//  Add image preview
 			if (options.image) {

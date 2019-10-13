@@ -146,14 +146,11 @@ module.exports = bot => {
 	
 	function autoStatus(){
 		let x = 1 // number of minutes
-		let numberoftimes = 0
 
 		update()
 		setInterval(update, 60000 * x)
 
 		async function update(){
-			logger.info(`in update() for the ${numberoftimes} time.`)
-			numberoftimes++
 
 			let data = await db.pullEventData(`event_data`)
 			
@@ -273,6 +270,16 @@ module.exports = bot => {
      */
 	function setupDatabase() {
 
+		db._query(`CREATE TABLE IF NOT EXISTS "halloween_rewards_pool" (
+					'item_id'	INTEGER,
+					'item_name'	TEXT,
+					'item_alias'	TEXT,
+					'type'	TEXT,
+					'rarity'	INTEGER,
+					'drop_rate'	REAL,
+					'availability'	INTEGER DEFAULT 0
+					)`
+		)
 		//	Reset whole server cooldown to false/zero.
 		db.resetCooldown()
 
@@ -296,6 +303,7 @@ module.exports = bot => {
 			bot.user.setActivity(`maintenance.`, {
 				type: `LISTENING`
 			})
+
 
 		} else {
 

@@ -329,9 +329,9 @@ class databaseUtils {
 	 */
 	sendTenChocolateBoxes(userId = this.id) {
 		this._query(`
-			UPDATE userinventories
-			SET chocolate_box = chocolate_box + 10
-			WHERE userId = ?`,
+			UPDATE item_inventory
+			SET quantity = quantity + 10
+			WHERE user_id = ? AND item_id = 81`,
 			`run`
 			, [userId]
 		)		
@@ -421,8 +421,8 @@ class databaseUtils {
 	 *  @param {Number|UserGachaTicket} lucky_ticket ticket
 	 *  @deliverRewardItems
 	 */
-	async deliverRewardItems({artcoins, lucky_ticket}) {
-		await this.storeArtcoins(artcoins)
+	async deliverRewardItems({artcoins, candies, lucky_ticket}) {
+		((new Date()).getMonth() == 9) ? await this.storeCandies(candies) : await this.storeArtcoins(artcoins)
 		await this.addLuckyTickets(lucky_ticket)
 		return this
 	}
@@ -447,6 +447,17 @@ class databaseUtils {
 	 */
 	async storeArtcoins(value) {
 		await this._updateInventory({itemId: 52, value: value, operation: `+`})
+		return this
+	}
+
+	/**
+	 * 	Add user artcoins. Supports method chaining.
+	 * 	@param {Number} value of the artcoins to be given
+	 * 	@param {String|ID} userId of the user id
+	 * 	@storeArtcoins
+	 */
+	async storeCandies(value) {
+		await this._updateInventory({ itemId: 102, value: value, operation: `+` })
 		return this
 	}
 
@@ -572,8 +583,12 @@ class databaseUtils {
 		return sql.all(`SELECT DISTINCT drop_rate FROM luckyticket_rewards_pool WHERE availability = 1`)
 	}
 
-	lootGroupByRate(rate) {
-		return sql.get(`SELECT * FROM luckyticket_rewards_pool WHERE drop_rate = ${rate} AND availability = 1 ORDER BY RANDOM() LIMIT 1`)
+	get halloweenBoxDropRates() {
+		return sql.all(`SELECT DISTINCT drop_rate FROM halloween_rewards_pool WHERE availability = 1`)
+	}
+
+	lootGroupByRate(rate, table = `luckyticket_rewards_pool`) {
+		return sql.get(`SELECT * FROM ${table} WHERE drop_rate = ${rate} AND availability = 1`)
 	}
 
 
@@ -586,6 +601,14 @@ class databaseUtils {
 		this._updateInventory({itemId: 71, value: value, operation:`-`})
 	}
 
+	/**
+     * Subtracting tickets by result of roll_type().
+	 * @param {Number} value amount to be subtracted
+     * @substract_ticket
+    */
+	withdrawHalloweenBox(value = 0) {
+		this._updateInventory({ itemId: 111, value: value, operation: `-` })
+	}
 
 	//	Count total user's collected cards.
 	async totalCollectedCards(userId = this.id) {
