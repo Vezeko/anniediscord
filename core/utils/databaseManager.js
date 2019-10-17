@@ -242,7 +242,7 @@ class databaseUtils {
 		const res = await this._query(`
 			UPDATE userdata
 			SET currentexp = currentexp + ?
-			WHERE userId IN (SELECT userId FROM collections WHERE naph_card = 1)`
+			WHERE userId IN (SELECT user_id FROM item_inventory WHERE item_id = 54)`
 			, `run`
 			, [meta.effect.exp]
 		)
@@ -440,6 +440,18 @@ class databaseUtils {
 
 
 	/**
+	 * 	Updating user any item. Support method chaining.
+	 * 	@param {Number} value amount of items to be given
+	 * 	@param {Number} item id
+	 * 	@addItems
+	 */
+	async addItems(itemId, value = 0) {
+		await this._updateInventory({itemId: itemId, value:value, operation:`+`})
+		return this
+	}
+
+
+	/**
 	 * 	Add user artcoins. Supports method chaining.
 	 * 	@param {Number} value of the artcoins to be given
 	 * 	@param {String|ID} userId of the user id
@@ -631,10 +643,24 @@ class databaseUtils {
 
 	//	Count total user's collected cards.
 	async totalCollectedCards(userId = this.id) {
-		const data = await sql.get(`SELECT * FROM collections WHERE userId = ${userId}`)
+		let data = await sql.get(`SELECT * FROM item_inventory WHERE user_id = ${userId}`)
 		for (let key in data) {
 			if (!data[key]) delete data[key]
 		}
+		/**
+		 * 	Filtering card from user inventory. Fyi, this doesn't have any to do with external db calling.
+		 * 	@param {Object} data user metadata.
+		 * 	@getCardFromInventory
+		 */
+		function filterCardFromInventory(data) {
+			return Object.keys(data)
+				.filter(key => key.endsWith(`_card`))
+				.reduce((obj, key) => {
+					obj[key] = data[key]
+					return obj
+				}, {})
+		}
+		data = filterCardFromInventory(data)
 		return Object.keys(data).length
 	}
 
@@ -903,23 +929,7 @@ class databaseUtils {
 	 *     @param opt of additional filter option. (default: "price < 999999")
 	 */
 	classifyLtdItem(status, opt = `price > 0`, order = `price ASC`) {
-		return sql.all(`SELECT name, type, price, desc FROM itemlist WHERE status = "${status.toString()}-sale" AND ${opt} GROUP BY type ORDER BY ${order}`).then(async parsed => parsed)
-	}
-
-	/**
-	 *     Get column of the currency
-	 *   @param currency type
-	 */
-	getCurrency(currency) {
-		return sql.all(`SELECT ${currency} FROM userinventories`)
-	}
-
-	/**
-	 *     Create column of the currency
-	 *   @param currency type
-	 */
-	makeCurrency(currency) {
-		return sql.all(`ALTER TABLE userinventories ADD ${currency} INTEGER DEFAULT 0`)
+		return sql.all(`SELECT name, type, price, desc FROM itemlist WHERE status = "${status.toString()}-sale" AND ${opt} ORDER BY type, ${order}`).then(async parsed => parsed)
 	}
 
 	/**
@@ -928,14 +938,6 @@ class databaseUtils {
 	 */
 	getUsersWithCurrency(currency) {
 		return sql.all(`SELECT * FROM userinventories WHERE ${currency} > 0`)
-	}
-
-	/**
-	 *     Sets currency to 0 and increases AC
-	 *   @param currency type
-	 */
-	convertCurrencyToAc(currency, newac, userId) {
-		return sql.all(`UPDATE userinventories SET ${currency} = 0, artcoins = ${newac} WHERE userId = ${userId}`)
 	}
 
 	/**

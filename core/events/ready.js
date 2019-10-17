@@ -11,7 +11,7 @@ module.exports = bot => {
 
 
 	/**
-     * secret thingy, change color of role
+     * Change color of role
      * @roleChange
      */
 	function roleChange(){
@@ -141,11 +141,6 @@ module.exports = bot => {
 	/**
      *  Automatically change current bot status presence
      *  @autoStatus
-	 * 
-	 * 	--	Disabled Temporary --
-	 * 
-	 * 	Note:
-	 * 	1. Please rework this function to integrate with databaseManager. 
      */
 	
 	function autoStatus(){
@@ -193,9 +188,9 @@ module.exports = bot => {
 			{
 				eventHasEnded: metadata.status === 1,
 				eventIsOver: bufferTime.after < metadata.currentTime,
-				doesEventEqualPresenceGame: bot.user.presence.game.name === `[EVENT] ${metadata.event}`,
-				presenceTypeIsPlaying: bot.user.presence.game.type === 0,
-				presenceGameIsNull: bot.user.presence.game == null,
+				doesEventEqualPresenceGame: bot.user.presence.game === (undefined || null) ? false : bot.user.presence.game.name === `[EVENT] ${metadata.event}`,
+				presenceTypeIsPlaying: bot.user.presence.game === (undefined || null) ? false : bot.user.presence.game.type === 0,
+				presenceGameIsNull: bot.user.presence.game == (undefined || null),
 				eventDontRepeat: data.repeat_after === 0,
 				eventIsHappening: bufferTime.start < metadata.currentTime && bufferTime.after > metadata.currentTime,
 				eventHasntStarted: bufferTime.before < metadata.currentTime && bufferTime.start > metadata.currentTime
@@ -206,23 +201,18 @@ module.exports = bot => {
 			// playing = type 0
 			
 			if (tests.eventHasEnded){
-				logger.info(`tests.eventHasEnded`)
 				return db.removeRowDataFromEventData(`name`, `'${metadata.event}'`, metadata.time)
 			}			
 			
 			if (tests.eventIsOver) {
-				logger.info(`tests.eventIsOver`)
 				eventEnded()
 			} else if (tests.presenceGameIsNull) {
-				logger.info(`tests.presenceGameNotNull`)
-				if (tests.doesEventEqualPresenceGame && tests.presenceTypeIsPlaying) return logger.info(`tests.doesEventEqualPresenceGame && tests.presenceTypeIsPlaying`)
+				if (tests.doesEventEqualPresenceGame && tests.presenceTypeIsPlaying) return
 			}
 
 			if (tests.eventHasntStarted) {
-				logger.info(`tests.eventHasntStarted`)
 				eventStartingIn()			
 			} else if (tests.eventIsHappening) {
-				logger.info(`tests.eventIsHappening`)
 				eventGoing()
 			}
 			
