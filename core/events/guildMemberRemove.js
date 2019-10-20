@@ -9,4 +9,16 @@ module.exports = (bot,member) => {
 
 	let memberCountUpdate = bot.channels.get(`518245560239652867`)
 	memberCountUpdate.setName(`˗ˏˋ ${configFormat.threeDigitsComa(userSize)} Artists!! ˎˊ˗`)
+
+	let shouldDeleteData = false
+	if (shouldDeleteData) removeUserData() 
+	function removeUserData(){
+		bot.db._query(`DELETE FROM clanmember WHERE userId = ?`, `run`, [member.id])
+		bot.db._query(`DELETE FROM userdata WHERE userId = ?`, `run`, [member.id])
+		bot.db._query(`DELETE FROM usercheck WHERE userId = ?`, `run`, [member.id])
+		bot.db._query(`DELETE FROM userbadges WHERE userId = ?`, `run`, [member.id])
+		bot.db._query(`DELETE FROM userartworks WHERE userId = ?`, `run`, [member.id])
+		bot.db._query(`DELETE FROM relationship WHERE userId1 = ? OR userId2 = ?`, `run`, [member.id, member.id])
+		bot.db._query(`DELETE FROM item_inventory WHERE user_id = ?`, `run`, [member.id])
+	}
 }
