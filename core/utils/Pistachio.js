@@ -74,7 +74,7 @@ class Pistachio {
 		if (message.member && (message.channel.type !== `dm`)) {
 
 			//  Check if current channel is included in gacha-allowed list
-			container.isGachaField = [bot.channels.get(`578518964439744512`).name, bot.channels.get(`614737097454125056`).name].includes(message.channel.name)
+			container.isGachaField = [bot.channels.get(`578518964439744512`).name, bot.channels.get(`614737097454125056`, bot.channels.get(`628330270755651584`)).name].includes(message.channel.name)
 
 			//  Check for administrator authority
 			container.isAdmin = message.member.roles.find(r => Object.keys(container.roles.admin).some(i => container.roles.admin[i] == r.id))
