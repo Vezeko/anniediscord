@@ -138,6 +138,44 @@ class databaseUtils {
 		return {stored: true}
 	}
 
+	/**
+	 * 	Standard low method for writing to limitedShopRoles
+	 *  @privateMethod
+	 *  @param {Number|ID} itemId item id
+	 *  @param {Number} value amount to be stored
+	 *  @param {Symbol} operation `+` for (sum), `-` for subtract and so on.
+	 *  @param {String|ID} userId user id
+	 */
+	async _limitedShopRoles({ roleId, value = 0, operation = `update`, userId = this.id }) {
+		logger.info(`im running`)
+		//	Return if roleId is not specified
+		if (!roleId) return { stored: false }
+		let res = {
+			//	Insert if no data entry exists.
+			insert: await this._query(`
+				INSERT INTO limitedShopRoles (user_id, role_id)
+				SELECT $userId, $roleId
+				WHERE NOT EXISTS (SELECT 1 FROM limitedShopRoles WHERE role_id = $roleId AND user_id = $userId)`
+				, `run`
+				, { $roleId: roleId, $userId: userId}
+			),
+			//	Try to update available row. It won't crash if no row is found.
+			update: await this._query(`
+				UPDATE limitedShopRoles
+				SET remove_by = ?
+				WHERE role_id = ? AND user_id = ?`
+				, `run`
+				, [value, roleId, userId]
+			)
+		}
+
+		logger.info(`[._limitedShopRoles][User:${userId}] (ITEMID:${roleId})(QTY:${value}) UPDATE:${res.update.stmt.changes} INSERT:${res.insert.stmt.changes} with operation(${operation})`)
+		return { stored: true }
+	}
+
+	getRemoveByLTSRole(roleId){
+		return this._query(`SELECT remove_by FROM limitedShopRoles WHERE user_id = ? AND role_id = ?`,`get`,[this.id,roleId])
+	}
 
 	/**
 	 * 	Defacto method for updating experience point
@@ -329,13 +367,7 @@ class databaseUtils {
 	 * 	@sendTenChocolateBoxes
 	 */
 	sendTenChocolateBoxes(userId = this.id) {
-		this._query(`
-			UPDATE item_inventory
-			SET quantity = quantity + 10
-			WHERE user_id = ? AND item_id = 81`,
-			`run`
-			, [userId]
-		)		
+		this._updateInventory({itemId: 81, value:10, operation:`+`, userId})	
 	}
 
 	userBadges(userId = this.id) {
@@ -500,16 +532,95 @@ class databaseUtils {
             WHERE userId = ${this.id}`)
 	}
 
+	get getStickers() {
+		return this._query(`SELECT * FROM itemlist,item_inventory 
+			WHERE itemlist.itemId = item_inventory.item_id AND item_inventory.user_id = ? AND itemlist.type = ?`
+			, `all`
+			, [this.id, `Sticker`]
+		)
+	}
+
+	get activeSticker() {
+		return this._query(`SELECT sticker
+			FROM userdata
+			WHERE userId = ?`
+			, `get`
+			, [this.id]
+		)
+	}
+
+	setSticker(data) {
+		return this._query(`UPDATE userdata 
+            SET sticker = ?
+			WHERE userId = ?
+		`
+		,`run`
+		,[data,this.id])
+	}
+
+	get getCovers(){
+		return this._query(`SELECT * FROM itemlist,item_inventory 
+			WHERE itemlist.itemId = item_inventory.item_id AND item_inventory.user_id = ? AND itemlist.type = ?`
+			,`all`
+			,[this.id,`Covers`]
+			)
+	}
+
+	get activeCover(){
+		return this._query(`SELECT cover
+			FROM userdata
+			WHERE userId = ?`
+			,`get`
+			,[this.id]
+			)
+	}
+
+	setCover(data){
+		this._query(`UPDATE userdata 
+            SET cover = ?
+			WHERE userId = ?`
+			,`run`
+			,[data,this.id])
+	}
+
 	updateCover(newvalue) {
 		sql.run(`UPDATE userdata 
-            SET cover = "${newvalue}"
-            WHERE userId = ${this.id}`)
+            SET cover = "${newvalue.alias}"
+			WHERE userId = ${this.id}`)
+		this._query(`
+				INSERT INTO item_inventory (item_id, user_id)
+				SELECT $itemId, $userId
+				WHERE NOT EXISTS (SELECT 1 FROM item_inventory WHERE item_id = $itemId AND user_id = $userId)`
+			, `run`
+			, { $userId: this.id, $itemId: newvalue.itemId }
+		)
+		this._query(`UPDATE item_inventory 
+			SET quantity = 1 
+			WHERE item_id = ? 
+			AND user_id = ?`
+			,`run`
+			,[newvalue.itemId, this.id]
+		)
 	}
 
 	updateSticker(newvalue){
 		sql.run(`UPDATE userdata 
-            SET sticker = "${newvalue}"
-            WHERE userId = ${this.id}`)
+            SET sticker = "${newvalue.alias}"
+			WHERE userId = ${this.id}`)
+		this._query(`
+				INSERT INTO item_inventory (item_id, user_id)
+				SELECT $itemId, $userId
+				WHERE NOT EXISTS (SELECT 1 FROM item_inventory WHERE item_id = $itemId AND user_id = $userId)`
+			, `run`
+			, { $userId: this.id, $itemId: newvalue.itemId }
+		)
+		this._query(`UPDATE item_inventory 
+			SET quantity = 1 
+			WHERE item_id = ? 
+			AND user_id = ?`
+			, `run`
+			, [newvalue.itemId, this.id]
+		)
 	}
 
 	async stickerTheme(data){
@@ -536,8 +647,22 @@ class databaseUtils {
 		let slotkey = Object.keys(badgedata)
 		let slotvalue = Object.values(badgedata)
 		sql.run(`UPDATE userbadges 
-            SET ${slotkey[slotvalue.indexOf(null)]} = "${newvalue}" 
-            WHERE userId = ${this.id}`)
+            SET ${slotkey[slotvalue.indexOf(null)]} = "${newvalue.alias}" 
+			WHERE userId = ${this.id}`)
+		this._query(`
+				INSERT INTO item_inventory (item_id, user_id)
+				SELECT $itemId, $userId
+				WHERE NOT EXISTS (SELECT 1 FROM item_inventory WHERE item_id = $itemId AND user_id = $userId)`
+			, `run`
+			, { $userId: this.id, $itemId: newvalue.itemId }
+		)
+		this._query(`UPDATE item_inventory 
+			SET quantity = 1 
+			WHERE item_id = ? 
+			AND user_id = ?`
+			, `run`
+			, [newvalue.itemId, this.id]
+		)
 	}
 
 	updateExpBooster(newvalue) {
@@ -648,6 +773,9 @@ class databaseUtils {
 		return sql.get(`SELECT * FROM ${table} WHERE drop_rate = ${rate} AND availability = 1`)
 	}
 
+	lootGroupByRateForHalloween(rate, table = `luckyticket_rewards_pool`) {
+		return sql.all(`SELECT * FROM ${table} WHERE drop_rate = ${rate} AND availability = 1 ORDER BY RANDOM() LIMIT 2`)
+	}
 
 	/**
      * Subtracting tickets by result of roll_type().
