@@ -103,6 +103,39 @@ class databaseUtils {
 		return newInventory
 	}
 
+	/**
+	 * 	Standard low method for writing to item_inventory
+	 *  @privateMethod
+	 *  @param {Number|ID} itemId item id
+	 *  @param {Number} value amount to be stored
+	 *  @param {Symbol} operation `+` for (sum), `-` for subtract and so on.
+	 *  @param {String|ID} userId user id
+	 */
+	async _transforInventoryCover({ itemId, value = 1, operation = `SET`, userId = this.id }) {
+		//	Return if itemId is not specified
+		if (!itemId) return { stored: false }
+		let res = {
+			//	Insert if no data entry exists.
+			insert: await this._query(`
+				INSERT INTO item_inventory (item_id, user_id)
+				SELECT $itemId, $userId
+				WHERE NOT EXISTS (SELECT 1 FROM item_inventory WHERE item_id = $itemId AND user_id = $userId)`
+				, `run`
+				, { $userId: userId, $itemId: itemId }
+			),
+			//	Try to update available row. It won't crash if no row is found.
+			update: await this._query(`
+				UPDATE item_inventory
+				SET quantity = ?
+				WHERE item_id = ? AND user_id = ?`
+				, `run`
+				, [value, itemId, userId]
+			)
+		}
+
+		logger.info(`[._transforInventoryCover][User:${userId}] (ITEMID:${itemId})(QTY:${value}) UPDATE:${res.update.stmt.changes} INSERT:${res.insert.stmt.changes} with operation(${operation})`)
+		return { stored: true }
+	}
 
 	/**
 	 * 	Standard low method for writing to item_inventory
@@ -147,7 +180,6 @@ class databaseUtils {
 	 *  @param {String|ID} userId user id
 	 */
 	async _limitedShopRoles({ roleId, value = 0, operation = `update`, userId = this.id }) {
-		logger.info(`im running`)
 		//	Return if roleId is not specified
 		if (!roleId) return { stored: false }
 		let res = {
@@ -185,12 +217,9 @@ class databaseUtils {
 		this._query(`
 			UPDATE userdata 
 			SET currentexp = ?
-			, level = ?
-			, maxexp = ?
-			, nextexpcurve = ?
 			WHERE userId = ?`
 			, `run`
-			, [data.currentexp, data.level, data.maxexp, data.nextexpcurve, userId])
+			, [data.currentexp, userId])
 	}
 
 
@@ -324,6 +353,11 @@ class databaseUtils {
 			, [userId]
 		)
 
+		let data = await this.xpFormula(main.currentexp)
+		main.level = data.level
+		main.maxexp = data.maxexp
+		main.nextexpcurve = data.nextexpcurve
+
 		let inventory = await this.pullInventory(userId)
 
 		return {...main, ...this._transformInventory(inventory)}
@@ -428,25 +462,25 @@ class databaseUtils {
 	}
 
 	//  Withdrawing multiple columns value
-	consumeMaterials(cardmeta) {
-		sql.run(`
-                UPDATE userinventories
-                SET ${this.toQuery(cardmeta)} 
-                WHERE userId = "${this.id}"
-            `)
-		return this
+	async consumeMaterials(cardmeta) {
+		let containerWithDetailedMetadata = await this._detransformInventory(cardmeta)
+		//  Store inventory data
+		return await this.withdrawUserCraftMetadata(containerWithDetailedMetadata)
 	}
 
 	//  Set one value into card column
-	registerCard(card_alias) {
-		sql.run(`
-                UPDATE collections
-                SET ${card_alias} = 1
-                WHERE userId = "${this.id}"
-            `)
-		return this
+	async registerCard(card_alias) {
+		let item_id = await this._query(`SELECT itemId FROM itemlist WHERE alias = ?`,`get`,[card_alias])
+		return await this._updateInventory({ itemId: item_id.itemId, value: 1, operation: `+` })
 	}
 
+	get cardItemIds() {
+		return this._query(`SELECT * FROM itemlist WHERE type = ? AND price_type != ?`, `all`, [`Card`,`candies`])
+	}
+
+	get recycleableItems() {
+		return this._query(`SELECT * FROM itemlist WHERE type = ? OR type = ? AND price_type != ?`, `all`, [`Card`,`Shard`, `candies`])
+	}
 	
 	/**
 	 * 	Event Manager toolkit. Sending package of reward to user. Supports method chaining.
@@ -706,10 +740,7 @@ class databaseUtils {
 	resetExperiencePoints(id = this.id) {
 		this._query(`
                 UPDATE userdata
-                SET currentexp = 0,
-                maxexp = 100,
-                nextexpcurve = 150,
-                level = 0
+                SET currentexp = 0
                 WHERE userId = ?`
             ,`run`
             , [id])
@@ -849,6 +880,17 @@ class databaseUtils {
 		}
 	}
 
+	/**
+     *  Storing rolled items straight into user inventory
+     *  @param {Object} obj as parsed object of roll metadata (require baking in `._detransformInventory()`).
+	 *  @param {String|ID} userid for userId consistency, better to insert the id.
+     */
+	async withdrawUserCraftMetadata(obj = {}, userid = this.id) {
+		for (let key in obj) {
+			let data = obj[key]
+			await this._updateInventory({ itemId: data.itemId, value: data.quantity, operation:`-`, userId: userid })
+		}
+	}
 
 	/**
      * Adding user reputation points
@@ -863,14 +905,6 @@ class databaseUtils {
                             WHERE userId = "${userId}"`)
 	}
 
-
-	get inventory() {
-		return sql.get(`
-                SELECT *
-                FROM userinventories
-                WHERE userId = "${this.id}"`)
-	}
-
 	pullInventory(id = this.id) {
 		return this._query(`
                 SELECT *
@@ -880,6 +914,17 @@ class databaseUtils {
 				WHERE item_inventory.user_id = ?`
 				, `all`
 				, [id])
+	}
+
+	pullInventoryCards(id = this.id) {
+		return this._query(`
+                SELECT *
+				FROM item_inventory
+				INNER JOIN itemlist
+				ON itemlist.itemId = item_inventory.item_id
+				WHERE item_inventory.user_id = ? AND itemlist.type = ?`
+			, `all`
+			, [id,`Card`])
 	}
 
 	//  Store new heart point
@@ -1108,8 +1153,9 @@ class databaseUtils {
 	 *     Get users with more than 0 currency
 	 *   @param currency type
 	 */
-	getUsersWithCurrency(currency) {
-		return sql.all(`SELECT * FROM userinventories WHERE ${currency} > 0`)
+	async getUsersWithCurrency(currency) {
+		let item_id = await this._query(`SELECT itemId FROM itemlist WHERE alias = ?`, `get`, [currency])
+		return this._query(`SELECT * FROM item_inventory WHERE item_id = ? AND quantity > 0`,`all`,[item_id.itemId])
 	}
 
 	/**
@@ -1261,6 +1307,20 @@ class databaseUtils {
 			.then(async x => x[index][val])
 	}
 
+
+		/**
+        *   Pull ID ranking based on given descendant column order. FOR CANDIES
+        * @param tablename of target table.
+        * @param columnname of sorted descendant column. 
+        * @param index of user.
+        * @param val of returned data value.
+        */
+	   indexRankingCandies(tablename = `item_inventory`, columnname = `quantity`, index, val, itemId = 102) {
+		return sql.all(`SELECT ${val} FROM ${tablename} WHERE item_id = ${itemId} ORDER BY ${columnname} DESC`)
+			.then(async x => x[index][val])
+	}
+
+
 	/**
 			*   Pull Author ID ranking based on given descendant column order.
 			* @param tablename of target table.
@@ -1270,6 +1330,17 @@ class databaseUtils {
 		return sql.all(`SELECT user_id FROM ${tablename} WHERE item_id = 52 ORDER BY ${columnname} DESC`)
 			.then(async x => x.findIndex(z => z.user_id === id ))
 	}
+
+	/**
+			*   Pull Author ID ranking based on given descendant column order.
+			* @param tablename of target table.
+			* @param columnname of sorted descendant column. 
+			*/
+	authorIndexRankingCandies(tablename, columnname, id = this.id) {
+		return sql.all(`SELECT user_id FROM ${tablename} WHERE item_id = 102 ORDER BY ${columnname} DESC`)
+			.then(async x => x.findIndex(z => z.user_id === id ))
+	}
+
 
 	/**
         *   Pull Author ID ranking based on given descendant column order.
@@ -1306,11 +1377,49 @@ class databaseUtils {
         *   Pull user collection of data.
         * @this.id
         */
-	get userDataQuerying() {
-		return sql.get(`SELECT * FROM userdata WHERE userId = ${this.id}`)
+	async userDataQuerying() {
+		let data = await sql.get(`SELECT * FROM userdata WHERE userId = ${this.id}`)
 			.then(async parsed => parsed)
+		let main = await this.xpFormula(data.currentexp)
+		data.level = main.level
+		data.maxexp = main.maxexp
+		data.nextexpcurve = main.nextexpcurve
+		return data
 	}
 
+	async xpFormula(data){
+		const formula = (exp) => {
+			if (exp < 100) {
+				return {
+					level: 0,
+					maxexp: 100,
+					nextexpcurve: 100
+				}
+			}
+
+			//exp = 100 * (Math.pow(level, 2)) + 50 * level + 100
+			//lvl = Math.sqrt(4 * exp - 375) / 20 - 0.25
+			var level = Math.sqrt(4 * exp - 375) / 20 - 0.25
+			level = Math.floor(level)
+			var maxexp = 100 * (Math.pow(level + 1, 2)) + 50 * (level + 1) + 100
+			var minexp = 100 * (Math.pow(level, 2)) + 50 * level + 100
+			var nextexpcurve = maxexp - minexp
+			level = level + 1
+
+			return {
+				level: level,
+				maxexp: maxexp,
+				nextexpcurve: nextexpcurve
+			}
+		}
+		
+		const accumulatedCurrent = Math.floor(data)
+		const main = formula(accumulatedCurrent)
+		let level = main.level
+		let maxexp = main.maxexp
+		let nextexpcurve = main.nextexpcurve
+		return {level,maxexp,nextexpcurve}
+	}
 
 	/**
         *   Pull user badges container of data.
@@ -1357,6 +1466,17 @@ class databaseUtils {
         */
 	get badges() {
 		return this.badgesQuerying
+	}
+
+	get retrieveTimeData(){
+		let dateRightNow = (new Date()).getTime()
+		let foreverDate = (new Date(`Jan 5, 2021 15:37:25`)).getTime()
+		return this._query(`SELECT * 
+			FROM limitedShopRoles 
+			WHERE remove_by != ? AND remove_by <= ? 
+			ORDER BY remove_by ASC LIMIT 50`
+			,`all`
+			,[foreverDate,dateRightNow])
 	}
 
 

@@ -1,3 +1,4 @@
+const cron = require(`node-cron`)
 module.exports = bot => {
 
 	// Modules
@@ -289,6 +290,19 @@ module.exports = bot => {
 	}
 
 	/**
+	 * schedules when to try and remove a limited Shop Role
+	 */
+	function removeLimShopRole(){
+        cron.schedule(`0 1 */30 * * *`, retriveData() )
+        async function retriveData(){
+            let data = await db.retrieveTimeData
+            if(!data) return
+            data.forEach(element => {
+                bot.members.get(element.user_id).removeRole(element.role_id)
+            })
+        }
+    }
+	/**
      * 
      * Fired processes on startup.
      * @startup
@@ -306,7 +320,6 @@ module.exports = bot => {
 				type: `LISTENING`
 			})
 
-
 		} else {
 
 			/**
@@ -316,12 +329,13 @@ module.exports = bot => {
 			bot.user.setStatus(`online`)
 			bot.user.setActivity(null)
 
-
 			setupDatabase()
 			roleChange()
 			autoStatus()
 			// Scare the mascot
 			stmloop()
+			// Remove limited role module
+			removeLimShopRole()
 		}
 	}
 

@@ -186,6 +186,7 @@ class Experience extends Controller {
 	 */
 	async runAndUpdate() {
 		try {
+			//this.setupmetaData()
 			this.handlePassiveTicketBoost()
 
 			//  Add & calculate bonuses from card if prompted

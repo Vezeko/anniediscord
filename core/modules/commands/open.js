@@ -24,7 +24,7 @@ class HalloweenBox {
 	 */
     async roll(limit) {
         const { world, emoji, reply, code: { SYS_NOTIFICATION }, relabel, closestUpper, pause, db ,message, addRole, bot:{logger} } = this.stacks
-
+        
         //	Roll's centralized metadata
         let metadata = {
             item: [],
@@ -34,14 +34,15 @@ class HalloweenBox {
             alias: [],
             roll_type: limit
         }
-
+        
         //	Get rates for each possible loot without duplicates			
         let rates = (await this.db.halloweenBoxDropRates).map(v => v.drop_rate)
 
         //	get loot by defined rate
         let get_loots = async (probs) => await this.db.lootGroupByRateForHalloween(closestUpper(rates, probs), `halloween_rewards_pool`)
-
+        
         for (let i = 0; i < limit; i++) {
+            
             //let arbitrary_num = Math.random() * 100
             let arbitrary_num = Math.random()
             let firstRes = await get_loots(arbitrary_num)
@@ -52,7 +53,6 @@ class HalloweenBox {
                 field: world,
                 simplified: true
             })
-
             if (res.type == `role`){
                 let dayOption = res.item_name
                 let day = dayOption.substring(dayOption.indexOf(`(`), dayOption.indexOf(`)`))
@@ -64,30 +64,38 @@ class HalloweenBox {
                 var foreverDate = new Date(`Jan 5, 2021 15:37:25`)
                 let roleName = message.guild.roles.find(r => r.id === roleData.alias).name
                 let currentRemoveBy = await db(message.author.id).getRemoveByLTSRole(roleData.alias)
-                let currentRemoveByDate = new Date(currentRemoveBy.remove_by)
-                if (currentRemoveByDate.getTime() == foreverDate.getTime()) day = 364
+                let currentRemoveByDate
+                if (currentRemoveBy != undefined){
+                    currentRemoveByDate = new Date(currentRemoveBy.remove_by)
+                    if (currentRemoveByDate.getTime() == foreverDate.getTime()) day = 364
+                }else{
+                    currentRemoveByDate = new Date(currentDate.getTime())
+                }
                 switch (day.toString().trim()) {
                     case `1`:
                         currentDate.setDate(currentDate.getDate() + 1)
-                        await db(message.author.id)._limitedShopRoles({ roleId: roleData.alias, value: currentDate.getTime() })
-                        addRole(roleName)
+                        if (currentDate.getTime()>currentRemoveByDate.getTime()) {
+                            await db(message.author.id)._limitedShopRoles({ roleId: roleData.alias, value: currentDate.getTime() })
+                            addRole(roleName)}
                         break
                     case `3`:
                         currentDate.setDate(currentDate.getDate() + 3)
-                        await db(message.author.id)._limitedShopRoles({ roleId: roleData.alias, value: currentDate.getTime() })
-                        addRole(roleName)
+                        if (currentDate.getTime()>currentRemoveByDate.getTime()) {
+                            await db(message.author.id)._limitedShopRoles({ roleId: roleData.alias, value: currentDate.getTime() })
+                            addRole(roleName)}
                         break
                     case `7`:
                         currentDate.setDate(currentDate.getDate() + 7)
+                        if (currentDate.getTime()>currentRemoveByDate.getTime()) {
                         await db(message.author.id)._limitedShopRoles({ roleId: roleData.alias, value: currentDate.getTime() })
-                        addRole(roleName)
+                        addRole(roleName)}
                         break
                     case `31`:
                         await db(message.author.id)._limitedShopRoles({ roleId: roleData.alias, value: foreverDate.getTime() })
                         addRole(roleName)
                         break
                     default:
-                        logger.info(`${message.author.tag} already has the role ${roleName} permently`)
+                        logger.info(`${message.author.tag} already has the role ${roleName} permanently`)
                         break
                 }
             }
@@ -100,6 +108,7 @@ class HalloweenBox {
             await pause(100)
 
         }
+        
         return metadata
     }
 
@@ -108,14 +117,13 @@ class HalloweenBox {
         const { message, name, reply, code: { HALLOWEEN_GACHA }, choice, emoji } = this.stacks
 
         //	Returns if user doesn't have any halloween box
-        if (!this.data.halloween_box) return reply(HALLOWEEN_GACHA.ZERO_TICKET)
+        if (!this.data.halloween_box) return reply(HALLOWEEN_GACHA.ZERO_TICKET, { socket: [`Boxes`] })
 
         //	Returns if user trying to do multi-roll with owned less than 10 tickets
-        if (this.data.halloween_box < this.roll_type) return reply(HALLOWEEN_GACHA.INSUFFICIENT_TICKET, { socket: [`boxes`] })
+        if (this.data.halloween_box < this.roll_type) return reply(HALLOWEEN_GACHA.INSUFFICIENT_TICKET, { socket: [`Boxes`] })
 
         //	Returns if user state still in cooldown
         if (Cooldown.has(this.author.id)) return reply(HALLOWEEN_GACHA.COOLING_DOWN)
-
 
         message.delete()
         //	Opening text
@@ -143,7 +151,7 @@ class HalloweenBox {
 
                     opening.delete()
                     //	Render result
-                    reply(`**${name(this.author.id)} used ${this.roll_type} halloween boxes!**`, {
+                    reply(`**${name(this.author.id)} opened ${this.roll_type} Halloween Boxes!**`, {
                         image: renderResult,
                         prebuffer: true,
                         simplified: true,
@@ -161,22 +169,21 @@ class HalloweenBox {
     async halloweenBag() {
         const { message, name, reply, bot: { db }, code: { HALLOWEEN_GACHA }, choice, emoji } = this.stacks
 
-        let amountOfCandies = Math.random() <= .01 ? 25 : Math.floor(Math.random() * 5)
+        let amountOfCandies = Math.random() <= .01 ? 25 : Math.floor(Math.random() * 4) + 1
         //	Returns if user doesn't have any halloween bags
-        if (!this.data.halloween_bag) return reply(HALLOWEEN_GACHA.ZERO_TICKET)
+        if (!this.data.halloween_bag) return reply(HALLOWEEN_GACHA.ZERO_TICKET, {socket:[`Bags`]})
 
         //	Returns if user trying to do multi-open with owned less than 10 bags
-        if (this.data.halloween_bag < this.roll_type) return reply(HALLOWEEN_GACHA.INSUFFICIENT_TICKET, { socket: [`bags`] })
+        if (this.data.halloween_bag < this.roll_type) return reply(HALLOWEEN_GACHA.INSUFFICIENT_TICKET, { socket: [`Bags`] })
 
         //	Returns if user state still in cooldown
         if (Cooldown.has(this.author.id)) return reply(HALLOWEEN_GACHA.COOLING_DOWN)
-
         message.delete()
         //	Opening text
         reply(emoji(`aaueyebrows`) + choice(HALLOWEEN_GACHA.OPENING_WORDS), {
             socket: [name(this.author.id)],
             notch: true,
-            imageGif: `https://cdn.discordapp.com/attachments/614737097454125056/632048843483119617/halloween_box_animated.gif`
+            //imageGif: `https://cdn.discordapp.com/attachments/614737097454125056/632048843483119617/halloween_box_animated.gif`
         })
 
 
@@ -193,9 +200,7 @@ class HalloweenBox {
                 setTimeout(async () => {
 
                     //	Render result
-                    reply(`**${name(this.author.id)} Opened ${this.roll_type} halloween bags!**\nFor a total of: **${amountOfCandies * this.roll_type}** candies`, {
-                        simplified: true,
-                    })
+                    reply(`**${name(this.author.id)}** opened ${this.roll_type} Halloween Bags and gained **${amountOfCandies * this.roll_type} Candies!**`)
 
                     //	Unlock cooldown
                     setTimeout(() => {
@@ -209,13 +214,13 @@ class HalloweenBox {
     async halloweenChest() {
         const { message, name, reply,bot:{db}, code: { HALLOWEEN_GACHA }, choice, emoji } = this.stacks
 
-        let amountOfCandies = Math.random() <= .01 ? 100 : Math.floor(Math.random() * 20)
+        let amountOfCandies = Math.random() <= .01 ? 100 : Math.floor(Math.random() * 19) +1
 
         //	Returns if user doesn't have any halloween chests
-        if (!this.data.halloween_chest) return reply(HALLOWEEN_GACHA.ZERO_TICKET)
+        if (!this.data.halloween_chest) return reply(HALLOWEEN_GACHA.ZERO_TICKET, { socket: [`Chests`] })
 
         //	Returns if user trying to do multi-open with owned less than 10 chests
-        if (this.data.halloween_chest < this.roll_type) return reply(HALLOWEEN_GACHA.INSUFFICIENT_TICKET, { socket: [`chests`] })
+        if (this.data.halloween_chest < this.roll_type) return reply(HALLOWEEN_GACHA.INSUFFICIENT_TICKET, { socket: [`Chests`] })
 
         //	Returns if user state still in cooldown
         if (Cooldown.has(this.author.id)) return reply(HALLOWEEN_GACHA.COOLING_DOWN)
@@ -244,9 +249,7 @@ class HalloweenBox {
                     opening.delete()
 
                     //	Render result
-                    reply(`**${name(this.author.id)} Opened ${this.roll_type} halloween bags!**\nFor a total of: **${amountOfCandies * this.roll_type}** candies`, {
-                        simplified: true,
-                    })
+                    reply(`**${name(this.author.id)}** opened ${this.roll_type} Halloween Chests and gained **${amountOfCandies * this.roll_type} Candies!**`)
 
                     //	Unlock cooldown
                     setTimeout(() => {
@@ -264,6 +267,8 @@ class HalloweenBox {
 
         //	Returns if current channel is not in gacha-allowed list
         if (!isGachaField) return reply(HALLOWEEN_GACHA.UNALLOWED_ACCESS, { socket: [gachaField] })
+        //  Exception when no parameter was specified
+        if (!args[0]) return this.halloweenBox()
 
         switch (args[0]) {
             case `bag`:
@@ -271,6 +276,9 @@ class HalloweenBox {
                 break
             case `chest`:
                 this.halloweenChest()
+                break
+            case `box`:
+                this.halloweenBox()
                 break
             default:
                 this.halloweenBox()
@@ -285,7 +293,7 @@ module.exports.help = {
     aliases: [`open`, `multi-open`],
     description: `opens a Halloween box.`,
     usage: `open hb`,
-    group: `shop-related`,
+    group: `shop`,
     public: false,
     required_usermetadata: true,
     multi_user: false

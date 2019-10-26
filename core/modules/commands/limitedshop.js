@@ -70,7 +70,7 @@ class Limitedshop {
 				.setDescription(`The ` + shopname + ` is here! ` + shopemote)
 				.setColor(palette.darkmatte)
 				.attachFile(`core/images/shop-` + shoptype + `-cov.png`)
-				.setImage(`https://i.ibb.co/pKLyV1b/discordaau-premiumcoverbanner.png`)//TODO placeholder
+				.setImage(`https://i.ibb.co/2tXV3T8/aau-halloweenshop-tutorialbanner.png`)//TODO placeholder
 			let numitems = getItems(await db.classifyLtdItem(shoptype, undefined, undefined), page, emoji(shopcurrency))
 			page.setFooter(`We have ` + numitems + ` limited items in store!`)
 			await shopchannel.send(page)
@@ -131,7 +131,7 @@ class Limitedshop {
 				.then(async (data) => {
 					for (var i=0;i<data.length;i++) {
 						if(!env.dev) {
-							var user = await bot.fetchUser(data[i].userId)
+							var user = await bot.fetchUser(data[i].user_id)
 							user.send(`ATTENTION!\n`+
 								`\n You haven't spent all of your `+shopcurrency+`.`+
 								`\n The store will close in exactly one week!`+//, and your `+shopcurrency+` will be destroyed!`+
@@ -260,8 +260,8 @@ module.exports.help = {
 	aliases: [`ltdshop`, `lshop`, `ltd`, `limitedshop`, `limited`],
 	description: `Opens or closes limited time shop`,
 	usage: `${env.prefix}ltdshop <open>/<close>`,
-	group: `Shop-related`,
-	public: true,
+	group: `shop`,
+	public: false,
 	required_usermetadata: true,
 	multi_user: false
 }

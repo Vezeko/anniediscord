@@ -1,14 +1,12 @@
 const { MessageCollector } = require(`discord.js`)
 const databaseManager = require(`./databaseManager.js`)
 
-
-
 class ScareTheMascot {
     constructor(bot) {
         this.bot = bot
         this.logger = this.bot.logger
-
-        this.active = false // on/off switch
+        this.eventmessage = `Trick or treat!! 🎃`
+        this.active = true // on/off switch
         this.eventchannels = [
             `459891664182312982`, //gen1
             `548950548343291914`, //gen2
@@ -20,7 +18,12 @@ class ScareTheMascot {
         this.eventchannel = ``
         this.collectortrigger = `👻`
         this.prefix = `👻ˋˏ┋ `
-        this.scaryusers = []
+        this.scaryusers = [],
+        this.prizeamount = 10,
+        this.scareembedobject = {
+            description: this.eventmessage,
+            color: 0xe66525
+        }
     }
 
     async eventloop() {
@@ -47,7 +50,7 @@ class ScareTheMascot {
         // Select random channel for event
         this.eventchannel = this.eventchannels[Math.floor(Math.random() * this.eventchannels.length)]
         await this.addChannelPrefix(this.eventchannel)
-        this.bot.channels.get(this.eventchannel).send(`Boo! 👻`)
+        this.bot.channels.get(this.eventchannel).send({ embed: this.scareembedobject})
         this.logger.info(`Scare The Mascot - Starting event on channel ` + this.eventchannel)
         this.currentevent = true
 
@@ -56,6 +59,7 @@ class ScareTheMascot {
         collector.on(`collect`, message => {
             if(!message.author.bot){
                 this.scaryusers.push(message.author.id)
+                message.react(this.bot.emojis.find(m => m.name === `AnnieShock`))
             }
         })
     }
@@ -66,17 +70,19 @@ class ScareTheMascot {
             let winnerlist = [...new Set(this.scaryusers)]
             this.logger.info(`Scare The Mascot - Users participating: ` + winnerlist)
 
-
             // Grab winner and reward
             if(this.scaryusers.length < 1) {
                 this.logger.info(`Scare The Mascot - No one won`)
-                this.bot.channels.get(this.eventchannel).send(`No one won. ):`)
+                this.bot.channels.get(this.eventchannel).send(`Fyuhh, no ghost this time...`)
             } else {
                 const winner = winnerlist[Math.floor(Math.random() * winnerlist.length)]
                 const db = new databaseManager(winner)
-                db.storeCandies(10)
-                this.logger.info(`Scare The Mascot - ` + winner + ` wins <amount> candies!`)
-                this.bot.channels.get(this.eventchannel).send(`<@` + winner + `> won 10candies. Congrats! 👻`)
+                db.storeCandies(this.prizeamount)
+                this.logger.info(`Scare The Mascot - ` + winner + ` wins ${this.prizeamount} candies!`)
+                this.bot.channels.get(this.eventchannel).send({embed:{
+                    description: `<@` + winner + `> That's so scary! Here's ${this.bot.emojis.find(m => m.name === `candies`)} **${this.prizeamount} Candies** for you!`,
+                    color: 0xe66525
+                }})
             }
         }
         await this.cleanevent()
@@ -106,7 +112,6 @@ class ScareTheMascot {
     async delay(ms) {
         return new Promise(function (resolve) { return setTimeout(resolve, ms) })
     }
-
 }
 
 module.exports = ScareTheMascot
