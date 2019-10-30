@@ -451,6 +451,14 @@ class databaseUtils {
 			`)
 	}
 
+	async panGift() {
+		return sql.run(`
+				UPDATE item_inventory
+				SET quantity = quantity + 20 
+				WHERE item_id = 102
+			`)
+	}
+
 	//  Accepts one level of an object. Returns sql-like string.
 	toQuery(data) {
 		let res = ``
@@ -801,7 +809,7 @@ class databaseUtils {
 	}
 
 	lootGroupByRate(rate, table = `luckyticket_rewards_pool`) {
-		return sql.get(`SELECT * FROM ${table} WHERE drop_rate = ${rate} AND availability = 1`)
+		return sql.all(`SELECT * FROM ${table} WHERE drop_rate = ${rate} AND availability = 1 ORDER BY RANDOM() LIMIT 5`)
 	}
 
 	lootGroupByRateForHalloween(rate, table = `luckyticket_rewards_pool`) {

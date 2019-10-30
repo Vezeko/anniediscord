@@ -5,7 +5,7 @@ class ScareTheMascot {
     constructor(bot) {
         this.bot = bot
         this.logger = this.bot.logger
-        this.eventmessage = `Trick or treat!! 🎃`
+        this.eventmessage = `Trick or treat!! 👻`
         this.active = true // on/off switch
         this.eventchannels = [
             `459891664182312982`, //gen1
@@ -20,6 +20,7 @@ class ScareTheMascot {
         this.prefix = `👻ˋˏ┋ `
         this.scaryusers = [],
         this.prizeamount = 10,
+        this.prizeamountsecondary = 5,
         this.scareembedobject = {
             description: this.eventmessage,
             color: 0xe66525
@@ -30,7 +31,7 @@ class ScareTheMascot {
         await this.cleanevent()
         while(this.active) {
             try {
-                await this.delay(1*60*60*1000)
+                await this.delay(1*45*60*1000)
                 await this.runevent()
                 await this.delay(70*1000)
                 await this.stopevent()
@@ -77,12 +78,18 @@ class ScareTheMascot {
             } else {
                 const winner = winnerlist[Math.floor(Math.random() * winnerlist.length)]
                 const db = new databaseManager(winner)
+                // Give random winner candies
                 db.storeCandies(this.prizeamount)
                 this.logger.info(`Scare The Mascot - ` + winner + ` wins ${this.prizeamount} candies!`)
                 this.bot.channels.get(this.eventchannel).send({embed:{
-                    description: `<@` + winner + `> That's so scary! Here's ${this.bot.emojis.find(m => m.name === `candies`)} **${this.prizeamount} Candies** for you!`,
+                    description: `<@` + winner + `> That's so scary! Here's ${this.bot.emojis.find(m => m.name === `candies`)} **${this.prizeamount + this.prizeamountsecondary} Candies** for you!`,
                     color: 0xe66525
                 }})
+                // Give participants candies
+                winnerlist.forEach(element=>{
+                    db.setUser(element).storeCandies(this.prizeamountsecondary)
+                    this.logger.info(`Scare The Mascot - ` + element + ` wins ${this.prizeamountsecondary} candies!`)
+                })
             }
         }
         await this.cleanevent()
