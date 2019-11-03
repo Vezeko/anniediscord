@@ -111,7 +111,7 @@ class databaseUtils {
 	 *  @param {Symbol} operation `+` for (sum), `-` for subtract and so on.
 	 *  @param {String|ID} userId user id
 	 */
-	async _transforInventoryCover({ itemId, value = 1, operation = `SET`, userId = this.id }) {
+	async _transforInventory({ itemId, value = 1, operation = `SET`, userId = this.id }) {
 		//	Return if itemId is not specified
 		if (!itemId) return { stored: false }
 		let res = {
@@ -133,7 +133,7 @@ class databaseUtils {
 			)
 		}
 
-		logger.info(`[._transforInventoryCover][User:${userId}] (ITEMID:${itemId})(QTY:${value}) UPDATE:${res.update.stmt.changes} INSERT:${res.insert.stmt.changes} with operation(${operation})`)
+		logger.info(`[._transforInventory][User:${userId}] (ITEMID:${itemId})(QTY:${value}) UPDATE:${res.update.stmt.changes} INSERT:${res.insert.stmt.changes} with operation(${operation})`)
 		return { stored: true }
 	}
 
@@ -483,11 +483,11 @@ class databaseUtils {
 	}
 
 	get cardItemIds() {
-		return this._query(`SELECT * FROM itemlist WHERE type = ? AND price_type != ?`, `all`, [`Card`,`candies`])
+		return this._query(`SELECT * FROM itemlist WHERE type = ? AND price_type != ? AND rarity = 5`, `all`, [`Card`,`candies`])
 	}
 
 	get recycleableItems() {
-		return this._query(`SELECT * FROM itemlist WHERE type = ? OR type = ? AND price_type != ?`, `all`, [`Card`,`Shard`, `candies`])
+		return this._query(`SELECT * FROM itemlist WHERE type = ? OR type = ? OR type = ? AND price_type != ?`, `all`, [`Foods`,`Shard`, `Materials`, `candies`])
 	}
 	
 	/**
@@ -1427,6 +1427,28 @@ class databaseUtils {
 		let maxexp = main.maxexp
 		let nextexpcurve = main.nextexpcurve
 		return {level,maxexp,nextexpcurve}
+	}
+
+	async xpReverseFormula(data) {
+		const formula = (level) => {
+			if (level < 1) {
+				return {
+					exp: 0
+				}
+			}
+
+			var exp = 100 * (Math.pow(level, 2)) + 50 * level + 100
+			exp = Math.floor(exp)
+
+			return {
+				exp: exp
+			}
+		}
+
+		const level = Math.floor(data)
+		const main = formula(level)
+		let exp = main.exp
+		return { exp }
 	}
 
 	/**
